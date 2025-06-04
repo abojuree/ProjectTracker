@@ -41,7 +41,7 @@ export default function StatsOverview({ teacherId }: StatsOverviewProps) {
         <Card>
           <CardContent className="p-6 text-center">
             <div className="mb-4">
-              <Users className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+              <i className="fas fa-users text-5xl text-blue-500 mb-4"></i>
               <h3 className="text-lg font-semibold mb-2">مرحباً بك في نظام إدارة ملفات الطلاب</h3>
               <p className="text-muted-foreground mb-4">ابدأ بإضافة بيانات الطلاب لرؤية الإحصائيات هنا</p>
               <div className="flex gap-2 justify-center text-sm text-muted-foreground">

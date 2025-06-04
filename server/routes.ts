@@ -1,9 +1,12 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { fileStorage } from "./fileStorage";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import { z } from "zod";
+import path from "path";
+import fs from "fs";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -122,6 +125,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create students in batch
       const createdStudents = await storage.createStudentsBatch(validStudentsData);
+      
+      // Create file folders for new students
+      const teacher = await storage.getTeacher(teacherId);
+      if (teacher) {
+        // Ensure teacher folder structure exists
+        await fileStorage.createTeacherFolders(teacherId, teacher.name);
+        
+        // Create folders for each new student
+        for (const student of createdStudents) {
+          try {
+            await fileStorage.createStudentFolder(teacherId, student.civilId, student.studentName);
+          } catch (error) {
+            console.warn(`Failed to create folder for student ${student.studentName}:`, error);
+          }
+        }
+      }
       
       res.json({ 
         message: `تم رفع ${validStudentsData.length} طالب بنجاح`,
@@ -267,10 +286,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
+      // Save file using local storage system
+      const filePath = await fileStorage.saveFile(
+        teacherId,
+        studentCivilId,
+        fileCategory,
+        req.file.originalname,
+        req.file.buffer
+      );
+
       // Generate system filename
       const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
       const fileExtension = req.file.originalname.split('.').pop();
       const systemName = `${studentCivilId}_${subject}_${fileCategory}_${date}_${Date.now()}.${fileExtension}`;
+
+      // Get file URL for serving
+      const fileUrl = fileStorage.getFileUrl(filePath);
 
       const fileData = {
         studentCivilId,
@@ -278,8 +309,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileCategory,
         originalName: req.file.originalname,
         systemName,
-        filePath: `/uploads/${systemName}`, // This would be Google Drive path in real implementation
-        fileUrl: `/api/files/${systemName}`, // This would be Google Drive URL in real implementation
+        filePath,
+        fileUrl,
         fileSize: req.file.size,
         fileType: fileExtension || 'unknown',
         teacherId,
@@ -292,6 +323,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading file:", error);
       res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
+  // File serving endpoint
+  app.get("/api/files/*", (req, res) => {
+    try {
+      const relativePath = req.params[0];
+      const absolutePath = fileStorage.getAbsolutePath(relativePath);
+      
+      // Check if file exists
+      if (!fs.existsSync(absolutePath)) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Set appropriate headers
+      const ext = path.extname(absolutePath).toLowerCase();
+      const mimeTypes: { [key: string]: string } = {
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.txt': 'text/plain'
+      };
+
+      const mimeType = mimeTypes[ext] || 'application/octet-stream';
+      res.setHeader('Content-Type', mimeType);
+      
+      // Send file
+      res.sendFile(absolutePath);
+    } catch (error) {
+      console.error("Error serving file:", error);
+      res.status(500).json({ message: "Failed to serve file" });
     }
   });
 
