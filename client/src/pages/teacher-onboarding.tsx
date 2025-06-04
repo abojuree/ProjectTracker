@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { GoogleAuth } from "@/lib/google-auth";
+import { GoogleDriveAuth } from "@/lib/google-drive-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { FcGoogle } from "react-icons/fc";
 import { Upload, School, FileSpreadsheet } from "lucide-react";
@@ -21,7 +21,7 @@ export default function TeacherOnboarding() {
   const handleGoogleAuth = async () => {
     try {
       setIsLoading(true);
-      const googleAuth = GoogleAuth.getInstance();
+      const googleAuth = GoogleDriveAuth.getInstance();
       await googleAuth.initialize();
       const user = await googleAuth.signIn();
       

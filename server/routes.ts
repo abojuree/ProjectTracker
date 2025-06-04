@@ -314,7 +314,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           linkCode,
           accessToken: '', // Will be updated when they authenticate
           refreshToken: '',
-          folderCreated: false,
           isActive: true
         });
       }

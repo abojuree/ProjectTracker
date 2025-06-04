@@ -19,6 +19,7 @@ export const teachers = pgTable("teachers", {
   googleId: varchar("google_id", { length: 255 }).unique().notNull(),
   email: varchar("email", { length: 255 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
+  profileImageUrl: varchar("profile_image_url", { length: 500 }),
   driveFolderId: varchar("drive_folder_id", { length: 255 }),
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
