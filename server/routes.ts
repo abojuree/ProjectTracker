@@ -327,9 +327,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // File serving endpoint
-  app.get("/api/files/*", (req, res) => {
+  app.get("/api/files/*", (req: any, res) => {
     try {
-      const relativePath = req.params[0];
+      const relativePath = req.params[0] || '';
       const absolutePath = fileStorage.getAbsolutePath(relativePath);
       
       // Check if file exists
