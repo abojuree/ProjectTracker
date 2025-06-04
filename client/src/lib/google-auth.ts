@@ -1,5 +1,5 @@
 // Google OAuth configuration for teachers
-export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "your-google-client-id";
+export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "your-google-client-id";
 
 export interface GoogleUser {
   id: string;

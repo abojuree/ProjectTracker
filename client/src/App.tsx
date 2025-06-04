@@ -10,10 +10,42 @@ import TeacherDashboard from "@/pages/teacher-dashboard";
 import ParentAccess from "@/pages/parent-access";
 
 function Router() {
+  const [isTeacherRegistered, setIsTeacherRegistered] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const teacherId = localStorage.getItem('teacherId');
+    if (teacherId) {
+      setIsTeacherRegistered(true);
+    }
+    setIsLoading(false);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">جاري التحميل...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Switch>
-      <Route path="/" component={TeacherDashboard} />
-      <Route path="/teacher/:teacherId" component={TeacherDashboard} />
+      {!isTeacherRegistered ? (
+        <>
+          <Route path="/" component={TeacherOnboarding} />
+          <Route path="/onboarding" component={TeacherOnboarding} />
+        </>
+      ) : (
+        <>
+          <Route path="/" component={TeacherDashboard} />
+          <Route path="/teacher-dashboard" component={TeacherDashboard} />
+          <Route path="/teacher/:teacherId" component={TeacherDashboard} />
+        </>
+      )}
       <Route path="/parent/:linkCode" component={ParentAccess} />
       <Route path="/p/:linkCode" component={ParentAccess} />
       <Route component={NotFound} />

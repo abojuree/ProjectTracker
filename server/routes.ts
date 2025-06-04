@@ -295,6 +295,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Teacher Google authentication routes
+  app.post('/api/auth/google/register', async (req, res) => {
+    try {
+      const { name, googleId, email, profileImageUrl } = req.body;
+      
+      // Check if teacher already exists
+      let teacher = await storage.getTeacherByGoogleId(googleId);
+      
+      if (!teacher) {
+        // Create new teacher with Google Auth integration
+        const linkCode = `${name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`;
+        teacher = await storage.createTeacher({
+          name,
+          email,
+          googleId,
+          profileImageUrl,
+          linkCode,
+          accessToken: '', // Will be updated when they authenticate
+          refreshToken: '',
+          folderCreated: false,
+          isActive: true
+        });
+      }
+      
+      res.json(teacher);
+    } catch (error) {
+      console.error('Error registering teacher:', error);
+      res.status(500).json({ message: 'Failed to register teacher' });
+    }
+  });
+
   // Parent access routes
   app.get("/api/captcha", async (req, res) => {
     try {
