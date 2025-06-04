@@ -127,6 +127,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download Excel template
+  app.get("/api/excel-template", (req, res) => {
+    try {
+      // Create a sample Excel workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Sample data with correct column names
+      const sampleData = [
+        {
+          'رقم متسلسل': 1,
+          'اسم الطالب': 'أحمد محمد العنزي',
+          'رقم الهوية': '1234567890',
+          'الصف': 'الصف الرابع الابتدائي',
+          'رقم الفصل': 1,
+          'المادة': 'الرياضيات'
+        },
+        {
+          'رقم متسلسل': 2,
+          'اسم الطالب': 'فاطمة علي المطيري',
+          'رقم الهوية': '2345678901',
+          'الصف': 'الصف الرابع الابتدائي',
+          'رقم الفصل': 1,
+          'المادة': 'الرياضيات'
+        }
+      ];
+      
+      const ws = XLSX.utils.json_to_sheet(sampleData);
+      XLSX.utils.book_append_sheet(wb, ws, 'بيانات الطلاب');
+      
+      // Generate buffer
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      
+      res.setHeader('Content-Disposition', 'attachment; filename=student-template.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error creating Excel template:", error);
+      res.status(500).json({ message: "Failed to create Excel template" });
+    }
+  });
+
   app.post("/api/teacher/:teacherId/students", async (req, res) => {
     try {
       const teacherId = parseInt(req.params.teacherId);

@@ -145,6 +145,21 @@ export default function StudentManagement({ teacherId, onStudentSelect }: Studen
                     disabled={excelUploadMutation.isPending}
                   />
                 </div>
+                
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      window.open('/api/excel-template', '_blank');
+                    }}
+                    className="text-xs"
+                  >
+                    <i className="fas fa-download ml-1"></i>
+                    تحميل نموذج Excel
+                  </Button>
+                </div>
+                
                 <div className="text-xs text-muted-foreground">
                   <p className="font-medium mb-1">الأعمدة المطلوبة:</p>
                   <ul className="list-disc list-inside space-y-1">
