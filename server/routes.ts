@@ -72,36 +72,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = XLSX.utils.sheet_to_json(worksheet);
 
       // Validate and map Excel data
-      const studentsData = data.map((row: any, index: number) => {
-        const serialNumber = row['رقم متسلسل'] || row['Serial Number'];
-        const studentName = row['اسم الطالب'] || row['Student Name'];
-        const civilId = row['رقم الهوية'] || row['Civil ID'];
-        const grade = row['الصف'] || row['Grade'];
-        const classNumber = row['رقم الفصل'] || row['Class Number'];
-        const subject = row['المادة'] || row['Subject'];
+      const validStudentsData: any[] = [];
+      
+      for (let index = 0; index < data.length; index++) {
+        const row = data[index] as Record<string, any>;
+        
+        // Try different column name variations
+        const serialNumber = row['رقم متسلسل'] || row['Serial Number'] || row['الرقم'] || row['رقم'];
+        const studentName = row['اسم الطالب'] || row['Student Name'] || row['الاسم'] || row['اسم'];
+        const civilId = row['رقم الهوية'] || row['Civil ID'] || row['الهوية'] || row['رقم_الهوية'];
+        const grade = row['الصف'] || row['Grade'] || row['الصف_الدراسي'];
+        const classNumber = row['رقم الفصل'] || row['Class Number'] || row['الفصل'] || row['رقم_الفصل'];
+        const subject = row['المادة'] || row['Subject'] || row['المادة_الدراسية'];
+
+        // Skip empty rows
+        if (!studentName && !civilId && !grade && !classNumber && !subject) {
+          continue;
+        }
 
         if (!studentName || !civilId || !grade || !classNumber || !subject) {
-          throw new Error(`Invalid data in row ${index + 2}`);
+          const availableColumns = Object.keys(row).join(', ');
+          throw new Error(`بيانات ناقصة في الصف ${index + 2}. الأعمدة المتاحة: ${availableColumns}. يرجى التأكد من أسماء الأعمدة الصحيحة`);
         }
 
-        if (typeof civilId !== 'string' || civilId.length !== 10) {
-          throw new Error(`Invalid Civil ID in row ${index + 2}: must be exactly 10 digits`);
+        // Convert civilId to string and validate
+        const civilIdStr = String(civilId).replace(/\s/g, '');
+        if (civilIdStr.length !== 10 || !/^\d{10}$/.test(civilIdStr)) {
+          throw new Error(`رقم الهوية غير صحيح في الصف ${index + 2}: "${civilIdStr}" - يجب أن يكون 10 أرقام بالضبط`);
         }
 
-        return {
-          civilId: civilId.toString(),
-          studentName: studentName.toString(),
-          grade: grade.toString(),
+        validStudentsData.push({
+          civilId: civilIdStr,
+          studentName: studentName.toString().trim(),
+          grade: grade.toString().trim(),
           classNumber: parseInt(classNumber.toString()),
-          subject: subject.toString(),
+          subject: subject.toString().trim(),
           teacherId,
           folderCreated: false,
           isActive: true
-        };
-      });
+        });
+      }
 
       // Create students in batch
-      const createdStudents = await storage.createStudentsBatch(studentsData);
+      const createdStudents = await storage.createStudentsBatch(validStudentsData);
       
       res.json({ 
         message: "Students uploaded successfully",
