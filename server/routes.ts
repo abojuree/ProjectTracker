@@ -73,6 +73,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate and map Excel data
       const validStudentsData: any[] = [];
+      let skippedRows = 0;
       
       for (let index = 0; index < data.length; index++) {
         const row = data[index] as Record<string, any>;
@@ -87,18 +88,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Skip empty rows
         if (!studentName && !civilId && !grade && !classNumber && !subject) {
+          skippedRows++;
           continue;
         }
 
         if (!studentName || !civilId || !grade || !classNumber || !subject) {
-          const availableColumns = Object.keys(row).join(', ');
-          throw new Error(`بيانات ناقصة في الصف ${index + 2}. الأعمدة المتاحة: ${availableColumns}. يرجى التأكد من أسماء الأعمدة الصحيحة`);
+          skippedRows++;
+          console.warn(`تجاهل الصف ${index + 2}: بيانات ناقصة`);
+          continue;
         }
 
         // Convert civilId to string and validate
         const civilIdStr = String(civilId).replace(/\s/g, '');
+        
+        // Skip rows with invalid civil IDs instead of throwing error
         if (civilIdStr.length !== 10 || !/^\d{10}$/.test(civilIdStr)) {
-          throw new Error(`رقم الهوية غير صحيح في الصف ${index + 2}: "${civilIdStr}" - يجب أن يكون 10 أرقام بالضبط`);
+          skippedRows++;
+          console.warn(`تجاهل الصف ${index + 2}: رقم هوية غير صحيح "${civilIdStr}"`);
+          continue;
         }
 
         validStudentsData.push({
@@ -117,9 +124,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createdStudents = await storage.createStudentsBatch(validStudentsData);
       
       res.json({ 
-        message: "Students uploaded successfully",
-        count: createdStudents.length,
-        students: createdStudents 
+        message: `تم رفع ${validStudentsData.length} طالب بنجاح`,
+        added: validStudentsData.length,
+        skipped: skippedRows,
+        total: data.length,
+        details: skippedRows > 0 ? `تم تجاهل ${skippedRows} صف بسبب بيانات غير صحيحة أو ناقصة` : undefined
       });
     } catch (error) {
       console.error("Error uploading Excel:", error);

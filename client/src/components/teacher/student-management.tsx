@@ -50,9 +50,13 @@ export default function StudentManagement({ teacherId, onStudentSelect }: Studen
       return response.json();
     },
     onSuccess: (data) => {
+      const description = data.skipped > 0 
+        ? `تم إضافة ${data.added} طالب، تم تجاهل ${data.skipped} صف`
+        : `تم إضافة ${data.added} طالب`;
+      
       toast({
         title: "تم رفع الملف بنجاح",
-        description: `تم إضافة ${data.count} طالب`,
+        description: description,
       });
       queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}/students`] });
       setIsExcelModalOpen(false);
