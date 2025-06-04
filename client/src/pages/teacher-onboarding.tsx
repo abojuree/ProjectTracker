@@ -53,10 +53,19 @@ export default function TeacherOnboarding() {
         description: "تم إنشاء مجلد رئيسي في Google Drive",
       });
       setStep(2);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Google Auth Error:', error);
+      
+      let errorMessage = "يرجى المحاولة مرة أخرى";
+      if (error.message?.includes('popup_blocked')) {
+        errorMessage = "يرجى السماح للنوافذ المنبثقة في المتصفح";
+      } else if (error.message?.includes('redirect_uri_mismatch')) {
+        errorMessage = "خطأ في إعدادات Google Cloud Console - يرجى إضافة النطاق المصرح به";
+      }
+      
       toast({
         title: "خطأ في ربط حساب Google",
-        description: "يرجى المحاولة مرة أخرى",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -115,9 +124,31 @@ export default function TeacherOnboarding() {
               )}
             </Button>
 
-            <p className="text-sm text-muted-foreground text-center">
-              سيتم استخدام Google Drive لحفظ ملفات الطلاب بشكل آمن ومنظم
-            </p>
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-2">أو</p>
+              <Button
+                onClick={() => {
+                  // Create demo teacher account
+                  localStorage.setItem('teacherId', '1');
+                  setLocation("/teacher-dashboard");
+                }}
+                variant="outline"
+                className="w-full"
+                size="sm"
+              >
+                متابعة بدون Google Drive (للاختبار)
+              </Button>
+            </div>
+
+            <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
+              <p className="text-xs text-amber-700 dark:text-amber-300 text-center">
+                إذا واجهت خطأ في Google Drive، يجب إضافة النطاق التالي في Google Cloud Console:
+                <br />
+                <code className="text-xs bg-white dark:bg-gray-800 px-1 rounded">
+                  {window.location.origin}
+                </code>
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
