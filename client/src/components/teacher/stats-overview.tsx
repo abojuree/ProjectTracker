@@ -34,6 +34,28 @@ export default function StatsOverview({ teacherId }: StatsOverviewProps) {
     );
   }
 
+  // Show welcome message for new teachers
+  if (stats?.totalStudents === 0) {
+    return (
+      <div className="grid gap-4 md:grid-cols-1">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <div className="mb-4">
+              <Users className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">مرحباً بك في نظام إدارة ملفات الطلاب</h3>
+              <p className="text-muted-foreground mb-4">ابدأ بإضافة بيانات الطلاب لرؤية الإحصائيات هنا</p>
+              <div className="flex gap-2 justify-center text-sm text-muted-foreground">
+                <span>• رفع ملف Excel</span>
+                <span>• إضافة طلاب يدوياً</span>
+                <span>• تنظيم الملفات</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const statCards = [
     {
       title: "إجمالي الطلاب",
