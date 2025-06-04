@@ -24,7 +24,7 @@ export const teachers = pgTable("teachers", {
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
   linkCode: varchar("link_code", { length: 50 }).unique(),
-  createdDate: timestamp("created_date").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
   lastLogin: timestamp("last_login"),
   isActive: boolean("is_active").default(true)
 }, (table) => [

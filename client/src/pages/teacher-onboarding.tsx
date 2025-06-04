@@ -25,19 +25,32 @@ export default function TeacherOnboarding() {
       await googleAuth.initialize();
       const user = await googleAuth.signIn();
       
-      // Register teacher with Google account
+      // Register teacher with Google account and store access token
       const teacherData = await apiRequest('POST', '/api/auth/google/register', {
         name: teacherName,
         googleId: user.id,
         email: user.email,
-        profileImageUrl: user.picture
+        profileImageUrl: user.picture,
+        accessToken: user.accessToken
       });
 
       setIsGoogleConnected(true);
-      localStorage.setItem('teacherId', '1'); // Temporary for demo
+      localStorage.setItem('teacherId', teacherData.id.toString());
+      localStorage.setItem('google_access_token', user.accessToken);
+      
+      // Create main teacher folder in Google Drive
+      try {
+        const folderId = await googleAuth.createFolder(`ملفات ${teacherName} - طلاب`);
+        await apiRequest('PUT', `/api/teacher/${teacherData.id}/drive-folder`, {
+          driveFolderId: folderId
+        });
+      } catch (error) {
+        console.warn('Failed to create Drive folder:', error);
+      }
+
       toast({
         title: "تم ربط حساب Google بنجاح",
-        description: "يمكنك الآن رفع بيانات الطلاب",
+        description: "تم إنشاء مجلد رئيسي في Google Drive",
       });
       setStep(2);
     } catch (error) {

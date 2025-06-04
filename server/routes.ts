@@ -298,7 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Teacher Google authentication routes
   app.post('/api/auth/google/register', async (req, res) => {
     try {
-      const { name, googleId, email, profileImageUrl } = req.body;
+      const { name, googleId, email, profileImageUrl, accessToken } = req.body;
       
       // Check if teacher already exists
       let teacher = await storage.getTeacherByGoogleId(googleId);
@@ -312,9 +312,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           googleId,
           profileImageUrl,
           linkCode,
-          accessToken: '', // Will be updated when they authenticate
+          accessToken: accessToken || '',
           refreshToken: '',
           isActive: true
+        });
+      } else {
+        // Update existing teacher with new access token
+        teacher = await storage.updateTeacher(teacher.id, {
+          accessToken: accessToken || teacher.accessToken,
+          lastLogin: new Date()
         });
       }
       
@@ -322,6 +328,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error registering teacher:', error);
       res.status(500).json({ message: 'Failed to register teacher' });
+    }
+  });
+
+  // Update teacher's Google Drive folder
+  app.put('/api/teacher/:teacherId/drive-folder', async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      const { driveFolderId } = req.body;
+      
+      const teacher = await storage.updateTeacher(teacherId, {
+        driveFolderId
+      });
+      
+      res.json(teacher);
+    } catch (error) {
+      console.error('Error updating Drive folder:', error);
+      res.status(500).json({ message: 'Failed to update Drive folder' });
     }
   });
 
