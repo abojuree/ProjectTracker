@@ -77,10 +77,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (let index = 0; index < data.length; index++) {
         const row = data[index] as Record<string, any>;
         
-        // Try different column name variations
-        const serialNumber = row['رقم متسلسل'] || row['Serial Number'] || row['الرقم'] || row['رقم'];
+        // Try different column name variations - updated to match user's file
+        const serialNumber = row['رقم متسلسل'] || row['Serial Number'] || row['الرقم'] || row['رقم'] || row['م'];
         const studentName = row['اسم الطالب'] || row['Student Name'] || row['الاسم'] || row['اسم'];
-        const civilId = row['رقم الهوية'] || row['Civil ID'] || row['الهوية'] || row['رقم_الهوية'];
+        const civilId = row['رقم الهوية'] || row['Civil ID'] || row['الهوية'] || row['رقم_الهوية'] || row['السجل المدني'];
         const grade = row['الصف'] || row['Grade'] || row['الصف_الدراسي'];
         const classNumber = row['رقم الفصل'] || row['Class Number'] || row['الفصل'] || row['رقم_الفصل'];
         const subject = row['المادة'] || row['Subject'] || row['المادة_الدراسية'];
@@ -124,6 +124,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading Excel:", error);
       res.status(500).json({ message: error instanceof Error ? error.message : "Failed to upload Excel file" });
+    }
+  });
+
+  // Test endpoint to analyze uploaded Excel file structure
+  app.post("/api/test-excel", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Parse Excel file
+      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      // Analyze structure
+      const analysis = {
+        totalRows: data.length,
+        columns: data.length > 0 ? Object.keys(data[0] as any) : [],
+        sampleData: data.slice(0, 3),
+        fileName: req.file.originalname,
+        fileSize: req.file.size
+      };
+
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error analyzing Excel:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to analyze Excel file" });
     }
   });
 
