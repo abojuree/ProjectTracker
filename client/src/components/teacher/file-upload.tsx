@@ -48,6 +48,12 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
   // Set default academic year if not selected
   const currentAcademicYear = selectedAcademicYear || latestAcademicYear;
 
+  // Create a map of student ID to file count for quick lookup
+  const fileCountMap = (fileCounts as any[]).reduce((map: any, item: any) => {
+    map[item.studentId] = item.fileCount;
+    return map;
+  }, {});
+
   // Filter students
   const filteredStudents = (students as Student[]).filter((student: any) => {
     const matchesSearch = student.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -204,34 +210,40 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-            {filteredStudents.map((student: Student) => (
-              <div
-                key={student.id}
-                className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                  selectedStudentId === student.id
-                    ? 'border-primary bg-primary/5'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => setSelectedStudentId(student.id)}
-              >
-                <div className="font-medium">{student.studentName}</div>
-                <div className="text-sm text-muted-foreground">
-                  الهوية: {student.civilId}
-                </div>
-                <div className="flex gap-2 mt-2">
-                  {student.grade && (
-                    <Badge variant="secondary" className="text-xs">
-                      {student.grade}
+            {filteredStudents.map((student: Student) => {
+              const fileCount = fileCountMap[student.id] || 0;
+              return (
+                <div
+                  key={student.id}
+                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                    selectedStudentId === student.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setSelectedStudentId(student.id)}
+                >
+                  <div className="font-medium">{student.studentName}</div>
+                  <div className="text-sm text-muted-foreground">
+                    الهوية: {student.civilId}
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    {student.grade && (
+                      <Badge variant="secondary" className="text-xs">
+                        {student.grade}
+                      </Badge>
+                    )}
+                    {student.classNumber && (
+                      <Badge variant="outline" className="text-xs">
+                        {student.classNumber}
+                      </Badge>
+                    )}
+                    <Badge variant="default" className="text-xs bg-blue-100 text-blue-700">
+                      {fileCount} ملف
                     </Badge>
-                  )}
-                  {student.classNumber && (
-                    <Badge variant="outline" className="text-xs">
-                      {student.classNumber}
-                    </Badge>
-                  )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

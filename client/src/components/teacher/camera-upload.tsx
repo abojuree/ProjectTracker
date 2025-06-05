@@ -37,6 +37,11 @@ export default function CameraUpload({ teacherId }: CameraUploadProps) {
     queryKey: [`/api/teacher/${teacherId}/students`],
   });
 
+  // Fetch file counts for each student
+  const { data: fileCounts = [] } = useQuery({
+    queryKey: [`/api/teacher/${teacherId}/student-file-counts`],
+  });
+
   // Get unique values for filtering
   const grades = Array.from(new Set((students as Student[]).map(s => s.grade))).filter(Boolean);
   const classes = Array.from(new Set((students as Student[]).map(s => s.classNumber))).filter(Boolean);
@@ -47,6 +52,12 @@ export default function CameraUpload({ teacherId }: CameraUploadProps) {
   
   // Set default academic year if not selected
   const currentAcademicYear = selectedAcademicYear || latestAcademicYear;
+
+  // Create a map of student ID to file count for quick lookup
+  const fileCountMap = (fileCounts as any[]).reduce((map: any, item: any) => {
+    map[item.studentId] = item.fileCount;
+    return map;
+  }, {});
 
   // Filter students based on search criteria
   const filteredStudents = (students as Student[]).filter((student: any) => {
@@ -159,6 +170,7 @@ export default function CameraUpload({ teacherId }: CameraUploadProps) {
       setIsCameraModalOpen(false);
       
       queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}/stats`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}/student-file-counts`] });
     },
     onError: (error: any) => {
       toast({
@@ -373,34 +385,40 @@ export default function CameraUpload({ teacherId }: CameraUploadProps) {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-                  {filteredStudents.map((student: Student) => (
-                    <div
-                      key={student.id}
-                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                        selectedStudentId === student.id.toString()
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                      onClick={() => setSelectedStudentId(student.id.toString())}
-                    >
-                      <div className="font-medium text-sm">{student.studentName}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        الهوية: {student.civilId}
-                      </div>
-                      <div className="flex gap-2 mt-2">
-                        {student.grade && (
-                          <Badge variant="secondary" className="text-xs">
-                            {student.grade}
+                  {filteredStudents.map((student: Student) => {
+                    const fileCount = fileCountMap[student.id] || 0;
+                    return (
+                      <div
+                        key={student.id}
+                        className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                          selectedStudentId === student.id.toString()
+                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                        onClick={() => setSelectedStudentId(student.id.toString())}
+                      >
+                        <div className="font-medium text-sm">{student.studentName}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          الهوية: {student.civilId}
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          {student.grade && (
+                            <Badge variant="secondary" className="text-xs">
+                              {student.grade}
+                            </Badge>
+                          )}
+                          {student.classNumber && (
+                            <Badge variant="outline" className="text-xs">
+                              فصل {student.classNumber}
+                            </Badge>
+                          )}
+                          <Badge variant="default" className="text-xs bg-blue-100 text-blue-700">
+                            {fileCount} ملف
                           </Badge>
-                        )}
-                        {student.classNumber && (
-                          <Badge variant="outline" className="text-xs">
-                            فصل {student.classNumber}
-                          </Badge>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {filteredStudents.length === 0 && (
                     <div className="col-span-full text-center py-8 text-muted-foreground">
                       لا توجد نتائج للبحث المحدد
