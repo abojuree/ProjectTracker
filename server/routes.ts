@@ -435,9 +435,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      // Clear old students data before uploading new data
+      // Clear old students data and Google Drive folders before uploading new data
       console.log(`Clearing old students data for teacher ${teacherId}...`);
       const oldStudents = await storage.getStudentsByTeacher(teacherId);
+      
+      // Get teacher info for Google Drive operations
+      const teacher = await storage.getTeacher(teacherId);
+      
+      // Delete old Google Drive folders if they exist
+      if (teacher && teacher.driveFolderId && oldStudents.length > 0) {
+        console.log(`Deleting ${oldStudents.length} old Google Drive folders...`);
+        for (const student of oldStudents) {
+          if (student.driveFolderId) {
+            try {
+              await googleDriveService.deleteFolder(student.driveFolderId);
+              console.log(`✅ Deleted Google Drive folder for Civil ID: ${student.civilId}`);
+            } catch (error) {
+              console.warn(`⚠️ Failed to delete Google Drive folder for Civil ID: ${student.civilId}:`, error);
+            }
+          }
+        }
+      }
+      
+      // Delete student records from database
       for (const student of oldStudents) {
         await storage.deleteStudent(student.id);
       }
