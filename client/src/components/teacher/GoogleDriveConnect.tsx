@@ -20,6 +20,30 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
 
   const hasGoogleAccess = teacher.accessToken && teacher.refreshToken;
 
+  // Check for success/error messages from URL params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('google_connected') === 'true') {
+      toast({
+        title: "تم الربط بنجاح",
+        description: "تم ربط حسابك مع Google Drive بنجاح",
+      });
+      // Clear URL params
+      window.history.replaceState({}, '', window.location.pathname);
+      // Refresh teacher data
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}`] });
+    } else if (urlParams.get('error') === 'google_auth_failed') {
+      toast({
+        title: "فشل في الربط",
+        description: "حدث خطأ أثناء ربط Google Drive",
+        variant: "destructive",
+      });
+      // Clear URL params
+      window.history.replaceState({}, '', window.location.pathname);
+      setIsConnecting(false);
+    }
+  }, [toast, queryClient, teacherId]);
+
   const connectGoogleMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest('GET', `/api/teacher/${teacherId}/connect-google`);
