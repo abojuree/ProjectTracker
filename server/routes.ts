@@ -164,6 +164,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Set password for existing teacher
+  app.post('/api/teacher/set-password', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "البريد الإلكتروني وكلمة المرور مطلوبان" });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ message: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" });
+      }
+      
+      const teacher = await storage.getTeacherByEmail(email);
+      if (!teacher) {
+        return res.status(404).json({ message: "لا يوجد حساب مسجل بهذا البريد الإلكتروني" });
+      }
+      
+      const saltRounds = 10;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+      
+      await storage.setTeacherPassword(teacher.id, passwordHash);
+      
+      res.json({ 
+        message: "تم تعيين كلمة المرور بنجاح",
+        teacherId: teacher.id
+      });
+    } catch (error) {
+      console.error('Set password error:', error);
+      res.status(500).json({ message: "خطأ في تعيين كلمة المرور" });
+    }
+  });
+
   app.get('/api/google-callback', async (req, res) => {
     try {
       const { google } = await import('googleapis');
