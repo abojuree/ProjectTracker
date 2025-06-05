@@ -23,7 +23,7 @@ export interface IStorage {
   getTeacherByLinkCode(linkCode: string): Promise<Teacher | undefined>;
   getTeacherByEmail(email: string): Promise<Teacher | undefined>;
   createTeacher(teacher: InsertTeacher): Promise<Teacher>;
-  updateTeacher(id: number, updates: Partial<InsertTeacher>): Promise<Teacher>;
+  updateTeacher(id: number, updates: Partial<InsertTeacher & { lastLogin?: Date }>): Promise<Teacher>;
   validateTeacherPassword(email: string, password: string): Promise<Teacher | null>;
   setTeacherPassword(teacherId: number, passwordHash: string): Promise<void>;
 
@@ -88,7 +88,7 @@ export class DatabaseStorage implements IStorage {
     return teacher;
   }
 
-  async updateTeacher(id: number, updates: Partial<InsertTeacher>): Promise<Teacher> {
+  async updateTeacher(id: number, updates: Partial<InsertTeacher & { lastLogin?: Date }>): Promise<Teacher> {
     const [teacher] = await db
       .update(teachers)
       .set(updates)

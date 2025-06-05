@@ -114,7 +114,8 @@ export const filesRelations = relations(files, ({ one }) => ({
 export const insertTeacherSchema = createInsertSchema(teachers).omit({
   id: true,
   createdAt: true,
-  lastLogin: true
+  lastLogin: true,
+  passwordHash: true
 });
 
 export const insertStudentSchema = createInsertSchema(students).omit({

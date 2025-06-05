@@ -7,6 +7,7 @@ import * as XLSX from "xlsx";
 import { z } from "zod";
 import path from "path";
 import fs from "fs";
+import bcrypt from "bcrypt";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -134,19 +135,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Teacher login
+  // Teacher login with password
   app.post('/api/teacher/login', async (req, res) => {
     try {
-      const { email } = req.body;
+      const { email, password } = req.body;
       
-      if (!email) {
-        return res.status(400).json({ message: "البريد الإلكتروني مطلوب" });
+      if (!email || !password) {
+        return res.status(400).json({ message: "البريد الإلكتروني وكلمة المرور مطلوبان" });
       }
       
-      const teacher = await storage.getTeacherByEmail(email);
+      const teacher = await storage.validateTeacherPassword(email, password);
       if (!teacher) {
-        return res.status(404).json({ message: "لا يوجد حساب مسجل بهذا البريد الإلكتروني" });
+        return res.status(401).json({ message: "البريد الإلكتروني أو كلمة المرور غير صحيحة" });
       }
+      
+      // Update last login
+      await storage.updateTeacher(teacher.id, {
+        lastLogin: new Date()
+      });
       
       res.json({ 
         message: "تم تسجيل الدخول بنجاح",
