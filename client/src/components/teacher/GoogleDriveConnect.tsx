@@ -189,6 +189,45 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
               </div>
             </div>
             
+            <Alert className="border-blue-200 bg-blue-50">
+              <Cloud className="h-4 w-4 text-blue-600" />
+              <AlertDescription>
+                <div className="space-y-3">
+                  <p className="font-medium text-blue-800">لتمكين إنشاء المجلدات التلقائي:</p>
+                  <div className="text-sm text-blue-700 space-y-2">
+                    <p>1. اذهب إلى مجلد Google Drive الخاص بك</p>
+                    <p>2. انقر بزر الماوس الأيمن على المجلد → "مشاركة"</p>
+                    <p>3. أضف هذا البريد الإلكتروني:</p>
+                    <div className="bg-blue-100 p-2 rounded flex items-center justify-between">
+                      <span className="text-xs font-mono break-all select-all">
+                        student-files-manager@student-file-manager-461913.iam.gserviceaccount.com
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 ml-2 flex-shrink-0"
+                        onClick={() => {
+                          navigator.clipboard.writeText('student-files-manager@student-file-manager-461913.iam.gserviceaccount.com');
+                          toast({
+                            title: "تم النسخ",
+                            description: "تم نسخ البريد الإلكتروني إلى الحافظة",
+                          });
+                        }}
+                      >
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </Button>
+                    </div>
+                    <p>4. اختر الصلاحية: "محرر" واضغط "إرسال"</p>
+                  </div>
+                  <p className="text-xs text-blue-600 italic">
+                    هذا سيمكن النظام من إنشاء مجلدات فعلية للطلاب في Google Drive
+                  </p>
+                </div>
+              </AlertDescription>
+            </Alert>
+
             <CreateStudentFoldersButton teacherId={teacherId} teacher={teacher} />
           </div>
         )}
