@@ -313,23 +313,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let skipped = 0;
       const details: string[] = [];
 
-      // Create logical folder structure for students (simple approach)
-      for (const student of students) {
+      console.log(`Starting folder creation for ${students.length} students...`);
+      
+      // Process students sequentially to avoid overwhelming Google Drive API
+      for (let i = 0; i < students.length; i++) {
+        const student = students[i];
+        const progress = Math.round(((i + 1) / students.length) * 100);
+        console.log(`Progress: ${progress}% - Processing student ${i + 1}/${students.length}: ${student.studentName}`);
+        
         try {
           // Skip if folder already created
           if (student.folderCreated) {
             skipped++;
+            console.log(`⏭️ Skipped ${student.studentName} - folder already exists`);
             continue;
           }
           
           // Try Service Account first for real folder creation
-          console.log(`Processing student: ${student.studentName}`);
           const { googleDriveService } = await import('./googleDriveService');
           
-          console.log(`Service Account configured: ${googleDriveService.isConfigured()}`);
-          
           if (googleDriveService.isConfigured()) {
-            console.log(`Attempting to create Google Drive folder for student: ${student.studentName}`);
             try {
               const result = await googleDriveService.createStudentFolder(teacher, student);
               
@@ -338,7 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   folderCreated: true
                 });
                 created++;
-                console.log(`✅ Successfully created real Google Drive folder for student: ${student.studentName} with ID: ${result.folderId}`);
+                console.log(`✅ Created Google Drive folder for student: ${student.studentName} with ID: ${result.folderId}`);
                 continue;
               } else {
                 console.error(`❌ Service Account failed for student ${student.studentName}: ${result.error}`);
@@ -513,31 +516,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // Create Google Drive folders if teacher has Drive folder configured
-        if (teacher.driveFolderId) {
-          console.log(`Creating Google Drive folders for ${createdStudents.length} students...`);
-          try {
-            // Import Google Drive functions
-            const { createStudentFolders } = await import('./googleDrive');
-            
-            // Create folders for each student in Google Drive
-            for (const student of createdStudents) {
-              try {
-                await createStudentFolders([student], teacher);
-                console.log(`Created Google Drive folder for student: ${student.studentName}`);
-                
-                // Update student record to mark folder as created
-                await storage.updateStudent(student.id, { folderCreated: true });
-              } catch (driveError) {
-                console.warn(`Failed to create Google Drive folder for student ${student.studentName}:`, driveError);
-              }
-            }
-          } catch (error) {
-            console.warn('Failed to create Google Drive folders:', error);
-          }
-        } else {
-          console.log('No Google Drive folder configured for teacher, skipping Drive folder creation');
-        }
+        // Skip Google Drive folder creation during Excel upload to avoid blocking
+        console.log(`Excel upload completed. Google Drive folders can be created separately using the "Create Student Folders" button.`);
       }
       
       res.json({ 

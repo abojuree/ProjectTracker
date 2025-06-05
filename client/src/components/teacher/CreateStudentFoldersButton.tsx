@@ -37,8 +37,24 @@ export default function CreateStudentFoldersButton({ teacher, teacherId }: Creat
       setProgress(0);
       setResult(null);
 
-      const response = await apiRequest('POST', `/api/teacher/${teacherId}/create-student-folders`);
-      return response.json();
+      // Start progress simulation while waiting for response
+      let currentProgress = 0;
+      const progressInterval = setInterval(() => {
+        currentProgress += 5;
+        if (currentProgress <= 95) {
+          setProgress(currentProgress);
+        }
+      }, 500);
+
+      try {
+        const response = await apiRequest('POST', `/api/teacher/${teacherId}/create-student-folders`);
+        clearInterval(progressInterval);
+        setProgress(100);
+        return response.json();
+      } catch (error) {
+        clearInterval(progressInterval);
+        throw error;
+      }
     },
     onSuccess: (data: FolderCreationResult) => {
       setResult(data);
