@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { GoogleDriveAuth } from "@/lib/google-drive-auth";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
 import { FcGoogle } from "react-icons/fc";
 import { Upload, School, FileSpreadsheet } from "lucide-react";
 
@@ -26,7 +26,7 @@ export default function TeacherOnboarding() {
       const user = await googleAuth.signIn();
       
       // Register teacher with Google account and store access token
-      const teacherData = await apiRequest('POST', '/api/auth/google/register', {
+      const response = await apiRequest('POST', '/api/auth/google/register', {
         name: teacherName,
         googleId: user.id,
         email: user.email,
@@ -34,6 +34,8 @@ export default function TeacherOnboarding() {
         accessToken: user.accessToken
       });
 
+      const teacherData = await response.json();
+      
       setIsGoogleConnected(true);
       localStorage.setItem('teacherId', teacherData.id.toString());
       localStorage.setItem('google_access_token', user.accessToken);
@@ -52,7 +54,9 @@ export default function TeacherOnboarding() {
         title: "تم ربط حساب Google بنجاح",
         description: "تم إنشاء مجلد رئيسي في Google Drive",
       });
-      setStep(2);
+      
+      // Redirect to teacher dashboard with correct teacherId
+      setLocation(`/teacher-dashboard/${teacherData.id}`);
     } catch (error: any) {
       console.error('Google Auth Error:', error);
       
@@ -78,7 +82,12 @@ export default function TeacherOnboarding() {
   };
 
   const handleSkipToManual = () => {
-    setLocation("/teacher-dashboard");
+    const teacherId = localStorage.getItem('teacherId');
+    if (teacherId) {
+      setLocation(`/teacher-dashboard/${teacherId}`);
+    } else {
+      setLocation("/teacher-dashboard/1");
+    }
   };
 
   if (step === 1) {
