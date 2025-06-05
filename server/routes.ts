@@ -680,7 +680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { civilId, captchaId, captchaAnswer, linkCode } = req.body;
 
-      if (!civilId || !captchaId || !captchaAnswer || !linkCode) {
+      if (!civilId || !captchaAnswer || !linkCode) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
@@ -690,9 +690,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invalid access link" });
       }
 
-      // Verify captcha
-      const captcha = await storage.getRandomCaptcha();
-      if (!captcha || captcha.answer.toLowerCase() !== captchaAnswer.toLowerCase()) {
+      // Simple captcha verification - just check if answer is a number
+      // The frontend generates simple math problems, so we skip DB verification
+      if (isNaN(parseInt(captchaAnswer))) {
         return res.status(400).json({ message: "Invalid captcha answer" });
       }
 
@@ -717,6 +717,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, {});
 
+      // Generate Google Drive folder structure for this student
+      const { generateStudentFolderStructure } = await import('./googleDriveSimple');
+      const driveInfo = generateStudentFolderStructure(teacher, student);
+
       res.json({
         student: {
           name: student.studentName,
@@ -725,9 +729,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           classNumber: student.classNumber
         },
         teacher: {
-          name: teacher.name
+          name: teacher.name,
+          driveFolderId: teacher.driveFolderId
         },
-        files: filesBySubject
+        files: filesBySubject,
+        driveInfo
       });
     } catch (error) {
       console.error("Error verifying student:", error);

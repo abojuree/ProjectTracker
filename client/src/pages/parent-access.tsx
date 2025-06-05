@@ -87,9 +87,11 @@ export default function ParentAccess() {
         throw new Error('إجابة التحقق غير صحيحة');
       }
       
-      const response: any = await apiRequest('POST', '/api/parent/verify-access', {
+      const response: any = await apiRequest('POST', '/api/verify-student', {
         linkCode,
-        civilId: civilId.trim()
+        civilId: civilId.trim(),
+        captchaId: captchaQuestion.id,
+        captchaAnswer: captchaAnswer.trim()
       });
       
       return response;
