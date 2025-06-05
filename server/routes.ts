@@ -64,6 +64,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Legacy OAuth redirect route for compatibility
+  app.get('/api/auth/google', (req, res) => {
+    // Redirect to teacher dashboard for proper OAuth flow
+    res.redirect('/teacher-dashboard/14');
+  });
+
   // Google OAuth for Drive access
   app.get('/api/teacher/:teacherId/connect-google', async (req, res) => {
     try {
