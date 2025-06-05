@@ -22,6 +22,7 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>("");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -31,18 +32,26 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
     queryKey: [`/api/teacher/${teacherId}/students`],
   });
 
-  // Get unique grades and classes
+  // Get unique values for filtering
   const grades = Array.from(new Set((students as Student[]).map(s => s.grade))).filter(Boolean);
   const classes = Array.from(new Set((students as Student[]).map(s => s.classNumber))).filter(Boolean);
+  const academicYears = Array.from(new Set((students as Student[]).map((s: any) => s.academicYear))).filter(Boolean);
+  
+  // Get the latest academic year as default
+  const latestAcademicYear = academicYears.sort().reverse()[0] || "2024-2025";
+  
+  // Set default academic year if not selected
+  const currentAcademicYear = selectedAcademicYear || latestAcademicYear;
 
   // Filter students
-  const filteredStudents = (students as Student[]).filter((student: Student) => {
+  const filteredStudents = (students as Student[]).filter((student: any) => {
     const matchesSearch = student.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          student.civilId.includes(searchTerm);
     const matchesGrade = !selectedGrade || selectedGrade === "all" || student.grade === selectedGrade;
     const matchesClass = !selectedClass || selectedClass === "all" || student.classNumber.toString() === selectedClass;
+    const matchesYear = !selectedAcademicYear || selectedAcademicYear === "all" || student.academicYear === selectedAcademicYear;
     
-    return matchesSearch && matchesGrade && matchesClass;
+    return matchesSearch && matchesGrade && matchesClass && matchesYear;
   });
 
   // File upload mutation
@@ -136,7 +145,21 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
           </div>
 
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Select value={selectedAcademicYear || currentAcademicYear} onValueChange={setSelectedAcademicYear}>
+              <SelectTrigger>
+                <SelectValue placeholder="اختر العام الدراسي" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">جميع الأعوام</SelectItem>
+                {academicYears.map(year => (
+                  <SelectItem key={year} value={year}>
+                    {year} {year === latestAcademicYear && "(الأحدث)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Select value={selectedGrade} onValueChange={setSelectedGrade}>
               <SelectTrigger>
                 <SelectValue placeholder="اختر الصف" />

@@ -300,7 +300,21 @@ export default function CameraUpload({ teacherId }: CameraUploadProps) {
                 </div>
 
                 {/* Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Select value={selectedAcademicYear || currentAcademicYear} onValueChange={setSelectedAcademicYear}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر العام الدراسي" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الأعوام</SelectItem>
+                      {academicYears.map(year => (
+                        <SelectItem key={year} value={year}>
+                          {year} {year === latestAcademicYear && "(الأحدث)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
                   <Select value={selectedGrade} onValueChange={setSelectedGrade}>
                     <SelectTrigger>
                       <SelectValue placeholder="اختر الصف" />
@@ -326,9 +340,28 @@ export default function CameraUpload({ teacherId }: CameraUploadProps) {
                   </Select>
                 </div>
 
-                {/* Results Summary */}
-                <div className="text-sm text-muted-foreground">
-                  عدد النتائج: {filteredStudents.length} طالب
+                {/* Results Summary and Reset */}
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-muted-foreground">
+                    عدد النتائج: {filteredStudents.length} طالب
+                    {selectedAcademicYear && selectedAcademicYear !== "all" && (
+                      <span className="mr-2">
+                        | العام الدراسي: {selectedAcademicYear}
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setSelectedGrade("");
+                      setSelectedClass("");
+                      setSelectedAcademicYear("");
+                    }}
+                  >
+                    إعادة تعيين الفلاتر
+                  </Button>
                 </div>
               </CardContent>
             </Card>
