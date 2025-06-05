@@ -53,11 +53,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const saltRounds = 10;
       const passwordHash = await bcrypt.hash(password, saltRounds);
 
-      const teacher = await storage.createTeacher({
+      // Create teacher without passwordHash in the data object
+      const teacherData = {
         name: name.trim(),
         schoolName: schoolName.trim(),
         email: email.trim(),
-        passwordHash,
         linkCode,
         googleId: null,
         accessToken: null,
@@ -65,7 +65,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         driveFolderId,
         profileImageUrl: null,
         isActive: true
-      });
+      };
+
+      const teacher = await storage.createTeacher(teacherData);
+      
+      // Set password separately
+      await storage.setTeacherPassword(teacher.id, passwordHash);
 
       res.json(teacher);
     } catch (error) {

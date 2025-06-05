@@ -107,6 +107,11 @@ export function useTeacherAuth() {
       title: "تم تسجيل الخروج",
       description: "تم تسجيل خروجك بنجاح",
     });
+    
+    // Redirect to home page
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 1000);
   };
 
   // Check if we need to complete post-OAuth registration
