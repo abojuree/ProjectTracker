@@ -76,6 +76,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTeacherByEmail(email: string): Promise<Teacher | undefined> {
+    // Get the most recent teacher with a password hash first, fallback to any teacher
+    const [teacherWithPassword] = await db
+      .select()
+      .from(teachers)
+      .where(and(
+        eq(teachers.email, email),
+        sql`password_hash IS NOT NULL`
+      ))
+      .orderBy(desc(teachers.createdAt))
+      .limit(1);
+    
+    if (teacherWithPassword) {
+      return teacherWithPassword;
+    }
+    
+    // Fallback to any teacher with this email
     const [teacher] = await db.select().from(teachers).where(eq(teachers.email, email));
     return teacher || undefined;
   }
@@ -268,7 +284,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async validateTeacherPassword(email: string, password: string): Promise<Teacher | null> {
-    const [teacher] = await db.select().from(teachers).where(eq(teachers.email, email));
+    // Get the most recent teacher with a password hash
+    const [teacher] = await db
+      .select()
+      .from(teachers)
+      .where(and(
+        eq(teachers.email, email),
+        sql`password_hash IS NOT NULL`
+      ))
+      .orderBy(desc(teachers.createdAt))
+      .limit(1);
     
     if (!teacher || !teacher.passwordHash) {
       return null;
