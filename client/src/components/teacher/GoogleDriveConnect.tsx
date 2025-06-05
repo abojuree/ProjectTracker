@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,77 +16,41 @@ interface GoogleDriveConnectProps {
   teacherId: number;
 }
 
+function extractFolderIdFromLink(link: string): string | null {
+  const patterns = [
+    /\/folders\/([a-zA-Z0-9-_]+)/,
+    /id=([a-zA-Z0-9-_]+)/,
+    /^([a-zA-Z0-9-_]+)$/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = link.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
 export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveConnectProps) {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [driveLink, setDriveLink] = useState(teacher.driveFolderId || '');
+  const [driveLink, setDriveLink] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const hasGoogleAccess = teacher.accessToken && teacher.refreshToken;
-
-  // Check for success/error messages from URL params
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('google_connected') === 'true') {
-      toast({
-        title: "تم الربط بنجاح",
-        description: "تم ربط حسابك مع Google Drive بنجاح",
-      });
-      // Clear URL params
-      window.history.replaceState({}, '', window.location.pathname);
-      // Refresh teacher data
-      queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}`] });
-    } else if (urlParams.get('error') === 'google_auth_failed') {
-      toast({
-        title: "فشل في الربط",
-        description: "حدث خطأ أثناء ربط Google Drive",
-        variant: "destructive",
-      });
-      // Clear URL params
-      window.history.replaceState({}, '', window.location.pathname);
-      setIsConnecting(false);
-    }
-  }, [toast, queryClient, teacherId]);
-
-  const connectGoogleMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('GET', `/api/teacher/${teacherId}/connect-google`);
-      return response.json();
-    },
-    onSuccess: (data) => {
-      if (data.authUrl) {
-        // Redirect to Google OAuth
-        window.location.href = data.authUrl;
-      } else {
-        throw new Error('No auth URL received');
-      }
-    },
-    onError: (error) => {
-      console.error('Google connection error:', error);
-      toast({
-        title: "خطأ في الربط",
-        description: "فشل في الاتصال بـ Google Drive. تأكد من إعداد Google Client ID و Secret",
-        variant: "destructive",
-      });
-      setIsConnecting(false);
-    }
-  });
-
-  const handleConnectGoogle = () => {
-    setIsConnecting(true);
-    connectGoogleMutation.mutate();
-  };
+  const extractedFolderId = driveLink ? extractFolderIdFromLink(driveLink) : null;
+  const isValid = Boolean(extractedFolderId);
 
   const saveDriveLinkMutation = useMutation({
-    mutationFn: async (folderLink: string) => {
-      return await apiRequest('POST', `/api/teacher/${teacherId}/drive-link`, { driveFolderLink: folderLink });
+    mutationFn: async (link: string) => {
+      const response = await apiRequest("POST", `/api/teacher/${teacherId}/drive-link`, {
+        driveFolderLink: link
+      });
+      return response.json();
     },
     onSuccess: () => {
       toast({
         title: "تم الحفظ بنجاح",
-        description: "تم حفظ رابط Google Drive وسيتم استخدامه لإنشاء مجلدات الطلاب",
-        variant: "default",
+        description: "تم ربط مجلد Google Drive بنجاح",
       });
+      setDriveLink("");
       queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}`] });
     },
     onError: (error) => {
@@ -99,7 +63,7 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
     },
   });
 
-  const handleSaveDriveLink = () => {
+  const handleSaveLink = () => {
     if (!driveLink.trim()) {
       toast({
         title: "رابط مطلوب",
@@ -120,87 +84,79 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {hasGoogleAccess ? (
+        {teacher.accessToken ? (
           <Alert>
             <CheckCircle className="h-4 w-4" />
             <AlertDescription>
-              تم ربط حسابك مع Google Drive بنجاح. يمكن الآن إنشاء مجلدات الطلاب تلقائياً ورفع الملفات مباشرة.
+              تم ربط حسابك مع Google Drive بنجاح. يمكن الآن إنشاء مجلدات الطلاب تلقائياً في حسابك الشخصي.
             </AlertDescription>
           </Alert>
-        ) : (
-          <>
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>مشكلة مؤقتة في OAuth:</strong> يظهر رفض الاتصال مع Google. 
-                <br />
-                <strong>الحل البديل:</strong> أدخل رابط مجلد Google Drive مباشرة أدناه للمتابعة
-              </AlertDescription>
-            </Alert>
+        ) : !teacher.driveFolderId ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-medium text-blue-800 mb-2">ربط حساب Google Drive الشخصي</h4>
+              <p className="text-sm text-blue-700 mb-4">
+                لإنشاء المجلدات تلقائياً في حسابك الشخصي، اربط حساب Google Drive الخاص بك
+              </p>
+              <Button 
+                onClick={() => window.location.href = `/api/teacher/${teacherId}/google-auth`}
+                className="w-full"
+              >
+                <Cloud className="h-4 w-4 ml-2" />
+                ربط حساب Google Drive
+              </Button>
+            </div>
             
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  جرب الربط التلقائي أولاً:
-                </p>
-                <Button 
-                  onClick={handleConnectGoogle}
-                  disabled={isConnecting}
-                  className="w-full"
-                >
-                  {isConnecting ? "جاري الربط..." : "ربط حساب Google Drive"}
-                </Button>
-              </div>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">أو</span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="driveLink" className="text-sm font-medium">
-                  أدخل رابط مجلد Google Drive يدوياً:
-                </Label>
-                <div className="space-y-2">
+            <div className="border-t pt-4">
+              <h4 className="font-medium mb-2">أو استخدم الطريقة اليدوية:</h4>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="driveFolderLink">رابط مجلد Google Drive</Label>
                   <Input
-                    id="driveLink"
+                    id="driveFolderLink"
+                    type="url"
                     placeholder="https://drive.google.com/drive/folders/..."
                     value={driveLink}
                     onChange={(e) => setDriveLink(e.target.value)}
-                    className="text-right"
+                    className="mt-2"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    انسخ رابط المجلد الرئيسي من Google Drive وألصقه هنا
+                  <p className="text-sm text-muted-foreground mt-2">
+                    انسخ رابط مجلد Google Drive المشترك هنا
                   </p>
                 </div>
+
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <h4 className="font-medium text-yellow-800 mb-2">تعليمات مهمة:</h4>
+                  <ol className="text-sm text-yellow-700 space-y-1 list-decimal list-inside">
+                    <li>أنشئ مجلداً جديداً في Google Drive</li>
+                    <li>اضغط بالزر الأيمن على المجلد واختر "مشاركة"</li>
+                    <li>اختر "أي شخص لديه الرابط يمكنه التحرير"</li>
+                    <li>انسخ الرابط والصقه هنا</li>
+                  </ol>
+                </div>
+
                 <Button 
-                  onClick={handleSaveDriveLink}
-                  disabled={saveDriveLinkMutation.isPending || !driveLink.trim()}
+                  onClick={handleSaveLink}
+                  disabled={!driveLink.trim() || saveDriveLinkMutation.isPending}
                   className="w-full"
                   variant="outline"
                 >
-                  <Link className="h-4 w-4 ml-2" />
                   {saveDriveLinkMutation.isPending ? "جاري الحفظ..." : "حفظ رابط Google Drive"}
                 </Button>
-              </div>
 
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  بعد الربط سيتمكن النظام من:
-                </p>
-                <ul className="text-sm text-muted-foreground space-y-1 mr-4">
-                  <li>• إنشاء مجلد منظم لكل طالب تلقائياً</li>
-                  <li>• رفع ملفات الطلاب مباشرة لحسابك</li>
-                  <li>• مشاركة الملفات مع أولياء الأمور بأمان</li>
-                </ul>
+                {isValid && (
+                  <Alert>
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      الرابط صحيح ومعرف المجلد: {extractedFolderId}
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             </div>
-          </>
-        )}
+          </div>
+        ) : null}
         
         {teacher.driveFolderId && (
           <div className="mt-4 space-y-3">
