@@ -78,7 +78,7 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
 
   const saveDriveLinkMutation = useMutation({
     mutationFn: async (folderLink: string) => {
-      return await apiRequest(`/api/teacher/${teacherId}/drive-link`, 'POST', { driveFolderLink: folderLink });
+      return await apiRequest('POST', `/api/teacher/${teacherId}/drive-link`, { driveFolderLink: folderLink });
     },
     onSuccess: () => {
       toast({
