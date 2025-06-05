@@ -248,12 +248,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let created = 0;
       let failed = 0;
+      let skipped = 0;
       const details: string[] = [];
 
       // For now, we'll simulate folder creation since we don't have OAuth access
       // In reality, this would use Google Drive API to create actual folders
       for (const student of students) {
         try {
+          // Skip if folder already created
+          if (student.folderCreated) {
+            skipped++;
+            continue;
+          }
+          
           // Simulate folder creation by updating the folderCreated flag
           await storage.updateStudent(student.id, {
             folderCreated: true
@@ -271,12 +278,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { generateSharingInstructions } = await import('./googleDriveSimple');
       const instructions = generateSharingInstructions(teacher);
 
+      // Prepare response details
+      const responseDetails: string[] = [];
+      if (created > 0) {
+        responseDetails.push(`تم إنشاء ${created} مجلد جديد`);
+      }
+      if (skipped > 0) {
+        responseDetails.push(`تم تخطي ${skipped} مجلد موجود مسبقاً`);
+      }
+      if (failed > 0) {
+        responseDetails.push(`فشل في إنشاء ${failed} مجلد`);
+        responseDetails.push(...details);
+      }
+      if (created === 0 && skipped > 0) {
+        responseDetails.push("جميع المجلدات موجودة مسبقاً");
+      }
+
       res.json({
-        success: created > 0,
+        success: created > 0 || (created === 0 && skipped > 0 && failed === 0),
         created,
         failed,
+        skipped,
         total: students.length,
-        details: failed > 0 ? details : [`تم إنشاء ${created} مجلد بنجاح`],
+        details: responseDetails,
         instructions
       });
 
