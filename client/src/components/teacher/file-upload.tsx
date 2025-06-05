@@ -83,6 +83,8 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
       setUploadedFiles([]);
       setSelectedStudentId(null);
       queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}/students`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}/stats`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}/student-file-counts`] });
     },
     onError: (error: any) => {
       toast({
