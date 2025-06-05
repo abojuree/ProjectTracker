@@ -49,7 +49,7 @@ export function generateStudentFolderStructure(teacher: Teacher, student: Studen
   }
 
   // Create a logical folder structure that teachers can manually create
-  const studentFolderName = `${student.name} - ${student.civilId}`;
+  const studentFolderName = `${student.studentName} - ${student.civilId}`;
   
   return {
     baseFolder: generateGoogleDrivePublicUrl(baseFolderId),
