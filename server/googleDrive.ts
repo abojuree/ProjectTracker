@@ -14,8 +14,38 @@ export async function createStudentFolders(
   students: Student[],
   teacher: Teacher
 ) {
+  // Try Service Account first
+  const { googleDriveService } = await import('./googleDriveService');
+  
+  if (googleDriveService.isConfigured()) {
+    console.log('Using Service Account for Google Drive folder creation');
+    
+    let created = 0;
+    let failed = 0;
+    
+    for (const student of students) {
+      try {
+        const result = await googleDriveService.createStudentFolder(teacher, student);
+        if (result.success) {
+          console.log(`✅ Created folder for ${student.studentName} with ID: ${result.folderId}`);
+          created++;
+        } else {
+          console.log(`❌ Failed to create folder for ${student.studentName}: ${result.error}`);
+          failed++;
+        }
+      } catch (error) {
+        console.log(`❌ Error creating folder for ${student.studentName}:`, error);
+        failed++;
+      }
+    }
+    
+    console.log(`Service Account results: ${created} created, ${failed} failed`);
+    return;
+  }
+  
+  // Fallback to OAuth if Service Account not available
   if (!teacher.accessToken) {
-    console.log('Teacher has no access token, cannot create Google Drive folders');
+    console.log('Neither Service Account nor OAuth token available - cannot create folders');
     return;
   }
 
