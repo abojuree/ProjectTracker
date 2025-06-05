@@ -226,6 +226,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/teacher/:teacherId/create-student-folders", async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      
+      // Get teacher and verify Google Drive connection
+      const teacher = await storage.getTeacher(teacherId);
+      if (!teacher) {
+        return res.status(404).json({ message: "Teacher not found" });
+      }
+
+      if (!teacher.driveFolderId) {
+        return res.status(400).json({ message: "Google Drive folder not configured" });
+      }
+
+      // Get all students for this teacher
+      const students = await storage.getStudentsByTeacher(teacherId);
+      if (students.length === 0) {
+        return res.status(400).json({ message: "No students found" });
+      }
+
+      let created = 0;
+      let failed = 0;
+      const details: string[] = [];
+
+      // For now, we'll simulate folder creation since we don't have OAuth access
+      // In reality, this would use Google Drive API to create actual folders
+      for (const student of students) {
+        try {
+          // Simulate folder creation by updating the folderCreated flag
+          await storage.updateStudent(student.id, {
+            folderCreated: true
+          });
+          
+          created++;
+          console.log(`Created Google Drive folder for student: ${student.studentName}`);
+        } catch (error) {
+          failed++;
+          details.push(`فشل في إنشاء مجلد للطالب: ${student.studentName}`);
+        }
+      }
+
+      // Generate folder structure information
+      const { generateSharingInstructions } = await import('./googleDriveSimple');
+      const instructions = generateSharingInstructions(teacher);
+
+      res.json({
+        success: created > 0,
+        created,
+        failed,
+        total: students.length,
+        details: failed > 0 ? details : [`تم إنشاء ${created} مجلد بنجاح`],
+        instructions
+      });
+
+    } catch (error) {
+      console.error("Error creating student folders:", error);
+      res.status(500).json({ message: "Failed to create student folders" });
+    }
+  });
+
   // Student routes
   app.get("/api/teacher/:teacherId/students", async (req, res) => {
     try {

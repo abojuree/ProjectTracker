@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Cloud, CheckCircle, AlertCircle, Link } from "lucide-react";
 import type { Teacher } from "@shared/schema";
+import CreateStudentFoldersButton from "./CreateStudentFoldersButton";
 
 interface GoogleDriveConnectProps {
   teacher: Teacher;
@@ -202,11 +203,15 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
         )}
         
         {teacher.driveFolderId && (
-          <div className="mt-4 p-3 bg-muted rounded-lg">
-            <p className="text-sm font-medium">مجلد Google Drive المربوط:</p>
-            <p className="text-sm text-muted-foreground">
-              {teacher.driveFolderId}
-            </p>
+          <div className="mt-4 space-y-3">
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm font-medium">مجلد Google Drive المربوط:</p>
+              <p className="text-sm text-muted-foreground">
+                {teacher.driveFolderId}
+              </p>
+            </div>
+            
+            <CreateStudentFoldersButton teacherId={teacherId} teacher={teacher} />
           </div>
         )}
       </CardContent>
