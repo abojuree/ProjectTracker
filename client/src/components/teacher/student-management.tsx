@@ -16,16 +16,7 @@ interface StudentManagementProps {
   onStudentSelect?: (civilId: string) => void;
 }
 
-interface Student {
-  id: number;
-  civilId: string;
-  studentName: string;
-  grade: string;
-  classNumber: number;
-  subject: string;
-  teacherId: number;
-  isActive: boolean;
-}
+import type { Student } from "@shared/schema";
 
 export default function StudentManagement({ teacherId, onStudentSelect }: StudentManagementProps) {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -40,7 +31,7 @@ export default function StudentManagement({ teacherId, onStudentSelect }: Studen
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
 
-  const { data: students, isLoading } = useQuery({
+  const { data: students = [] as Student[], isLoading } = useQuery({
     queryKey: [`/api/teacher/${teacherId}/students`],
     enabled: !!teacherId
   });
@@ -283,24 +274,30 @@ export default function StudentManagement({ teacherId, onStudentSelect }: Studen
         </CardHeader>
         <CardContent>
           {students && students.length > 0 ? (
-            <div className="space-y-2">
-              {students.map((student: Student) => (
-                <div 
-                  key={student.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                  onClick={() => onStudentSelect?.(student.civilId)}
-                >
-                  <div>
-                    <p className="font-medium">{student.studentName}</p>
-                    <p className="text-sm text-gray-500">
-                      {student.grade} - فصل {student.classNumber} - {student.subject}
-                    </p>
+            <div className="space-y-6">
+              {/* Delete Actions Component */}
+              <StudentDeleteActions students={students} teacherId={teacherId} />
+              
+              {/* Students List */}
+              <div className="space-y-2">
+                {students.map((student: Student) => (
+                  <div 
+                    key={student.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                    onClick={() => onStudentSelect?.(student.civilId)}
+                  >
+                    <div>
+                      <p className="font-medium">{student.studentName}</p>
+                      <p className="text-sm text-gray-500">
+                        {student.grade} - فصل {student.classNumber} - {student.subject}
+                      </p>
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {student.civilId}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-400">
-                    {student.civilId}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
