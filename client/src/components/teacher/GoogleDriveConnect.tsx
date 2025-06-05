@@ -1,0 +1,104 @@
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Cloud, CheckCircle, AlertCircle } from "lucide-react";
+import type { Teacher } from "@shared/schema";
+
+interface GoogleDriveConnectProps {
+  teacher: Teacher;
+  teacherId: number;
+}
+
+export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveConnectProps) {
+  const [isConnecting, setIsConnecting] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const hasGoogleAccess = teacher.accessToken && teacher.refreshToken;
+
+  const connectGoogleMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('GET', `/api/teacher/${teacherId}/connect-google`);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Redirect to Google OAuth
+      window.location.href = data.authUrl;
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ في الربط",
+        description: "فشل في الاتصال بـ Google Drive",
+        variant: "destructive",
+      });
+      setIsConnecting(false);
+    }
+  });
+
+  const handleConnectGoogle = () => {
+    setIsConnecting(true);
+    connectGoogleMutation.mutate();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Cloud className="h-5 w-5" />
+          ربط Google Drive
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {hasGoogleAccess ? (
+          <Alert>
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription>
+              تم ربط حسابك مع Google Drive بنجاح. يمكن الآن إنشاء مجلدات الطلاب تلقائياً ورفع الملفات مباشرة.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                لإنشاء مجلدات الطلاب تلقائياً في Google Drive، يجب ربط حسابك أولاً.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                بعد الربط سيتمكن النظام من:
+              </p>
+              <ul className="text-sm text-muted-foreground space-y-1 mr-4">
+                <li>• إنشاء مجلد منظم لكل طالب تلقائياً</li>
+                <li>• رفع ملفات الطلاب مباشرة لحسابك</li>
+                <li>• مشاركة الملفات مع أولياء الأمور بأمان</li>
+              </ul>
+              
+              <Button 
+                onClick={handleConnectGoogle}
+                disabled={isConnecting}
+                className="w-full"
+              >
+                {isConnecting ? "جاري الربط..." : "ربط حساب Google Drive"}
+              </Button>
+            </div>
+          </>
+        )}
+        
+        {teacher.driveFolderId && (
+          <div className="mt-4 p-3 bg-muted rounded-lg">
+            <p className="text-sm font-medium">مجلد Google Drive المربوط:</p>
+            <p className="text-sm text-muted-foreground">
+              {teacher.driveFolderId}
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

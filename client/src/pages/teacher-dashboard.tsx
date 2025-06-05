@@ -4,6 +4,7 @@ import StatsOverview from "@/components/teacher/stats-overview";
 import StudentManagement from "@/components/teacher/student-management";
 import FileManagement from "@/components/teacher/file-management";
 import ParentLinkGenerator from "@/components/teacher/parent-link-generator";
+import GoogleDriveConnect from "@/components/teacher/GoogleDriveConnect";
 import { useTeacher } from "@/hooks/use-teacher";
 import { useTeacherAuth } from "@/hooks/useTeacherAuth";
 
@@ -106,6 +107,9 @@ export default function TeacherDashboard() {
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <StatsOverview teacherId={currentTeacherId} />
+            {teacher && (
+              <GoogleDriveConnect teacher={teacher} teacherId={currentTeacherId} />
+            )}
           </div>
         )}
 

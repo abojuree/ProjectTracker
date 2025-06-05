@@ -64,6 +64,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Google OAuth for Drive access
+  app.get('/api/teacher/:teacherId/connect-google', async (req, res) => {
+    try {
+      const { google } = await import('googleapis');
+      
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        `${req.protocol}://${req.get('host')}/api/teacher/${req.params.teacherId}/google-callback`
+      );
+
+      const scopes = [
+        'https://www.googleapis.com/auth/drive',
+        'https://www.googleapis.com/auth/drive.file',
+        'https://www.googleapis.com/auth/userinfo.email'
+      ];
+
+      const authUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: scopes,
+        prompt: 'consent'
+      });
+
+      res.json({ authUrl });
+    } catch (error) {
+      console.error('Error generating Google auth URL:', error);
+      res.status(500).json({ message: 'Failed to generate auth URL' });
+    }
+  });
+
+  app.get('/api/teacher/:teacherId/google-callback', async (req, res) => {
+    try {
+      const { google } = await import('googleapis');
+      const { code } = req.query;
+      const teacherId = parseInt(req.params.teacherId);
+
+      if (!code) {
+        return res.status(400).send('Authorization code missing');
+      }
+
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        `${req.protocol}://${req.get('host')}/api/teacher/${teacherId}/google-callback`
+      );
+
+      const { tokens } = await oauth2Client.getToken(code as string);
+      
+      // Update teacher with access tokens
+      await storage.updateTeacher(teacherId, {
+        accessToken: tokens.access_token || null,
+        refreshToken: tokens.refresh_token || null
+      });
+
+      // Redirect back to dashboard with success
+      res.redirect(`/teacher-dashboard/${teacherId}?google_connected=true`);
+    } catch (error) {
+      console.error('Error handling Google callback:', error);
+      res.redirect(`/teacher-dashboard/${req.params.teacherId}?error=google_auth_failed`);
+    }
+  });
+
   // Teacher routes
   app.get("/api/teacher/:teacherId", async (req, res) => {
     try {
