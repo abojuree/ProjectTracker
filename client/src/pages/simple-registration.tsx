@@ -199,6 +199,17 @@ export default function SimpleRegistration() {
             {isLoading ? "جاري إنشاء الحساب..." : "إنشاء الحساب وبدء الاستخدام"}
           </Button>
 
+          <div className="text-center space-y-2">
+            <p className="text-sm text-gray-600">لديك حساب مسبقاً؟</p>
+            <Button 
+              variant="outline" 
+              onClick={() => setLocation('/teacher-login')}
+              className="w-full"
+            >
+              تسجيل الدخول
+            </Button>
+          </div>
+
           <Button
             onClick={handleRegister}
             variant="outline"
