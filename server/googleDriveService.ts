@@ -87,20 +87,11 @@ export class GoogleDriveService {
 
       const folderId = folderResponse.data.id;
 
-      // Create subject subfolders
-      const subjects = [
-        'الرياضيات',
-        'العلوم', 
-        'اللغة العربية',
-        'اللغة الإنجليزية',
-        'التربية الإسلامية',
-        'الاجتماعيات'
-      ];
-
-      for (const subject of subjects) {
+      // Create subject subfolder based on student's subject from Excel
+      if (student.subject && student.subject.trim()) {
         await this.drive.files.create({
           requestBody: {
-            name: subject,
+            name: student.subject.trim(),
             mimeType: 'application/vnd.google-apps.folder',
             parents: [folderId]
           }
