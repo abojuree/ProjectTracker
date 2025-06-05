@@ -39,8 +39,8 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
   const filteredStudents = (students as Student[]).filter((student: Student) => {
     const matchesSearch = student.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          student.civilId.includes(searchTerm);
-    const matchesGrade = !selectedGrade || student.grade === selectedGrade;
-    const matchesClass = !selectedClass || student.classNumber.toString() === selectedClass;
+    const matchesGrade = !selectedGrade || selectedGrade === "all" || student.grade === selectedGrade;
+    const matchesClass = !selectedClass || selectedClass === "all" || student.classNumber.toString() === selectedClass;
     
     return matchesSearch && matchesGrade && matchesClass;
   });
@@ -142,7 +142,7 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
                 <SelectValue placeholder="اختر الصف" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">جميع الصفوف</SelectItem>
+                <SelectItem value="all">جميع الصفوف</SelectItem>
                 {grades.map(grade => (
                   <SelectItem key={grade} value={grade}>{grade}</SelectItem>
                 ))}
@@ -154,7 +154,7 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
                 <SelectValue placeholder="اختر الفصل" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">جميع الفصول</SelectItem>
+                <SelectItem value="all">جميع الفصول</SelectItem>
                 {classes.map(classNum => (
                   <SelectItem key={classNum} value={classNum.toString()}>{classNum}</SelectItem>
                 ))}
@@ -224,7 +224,7 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
                 <SelectValue placeholder="اختر تصنيف الملف (اختياري)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">بدون تصنيف</SelectItem>
+                <SelectItem value="general">بدون تصنيف</SelectItem>
                 <SelectItem value="homework">واجبات</SelectItem>
                 <SelectItem value="exams">امتحانات</SelectItem>
                 <SelectItem value="projects">مشاريع</SelectItem>
