@@ -195,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Google OAuth routes for teachers
-  app.get("/api/teacher/:teacherId/google-auth", async (req, res) => {
+  app.get("/api/teacher/:teacherId/google-auth", async (req: any, res) => {
     try {
       const { googleDriveAPI } = await import('./googleDriveApi');
       const authUrl = googleDriveAPI.generateAuthUrl();
@@ -211,7 +211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/google-callback", async (req, res) => {
+  app.get("/api/google-callback", async (req: any, res) => {
     try {
       const { code } = req.query;
       const teacherId = req.session?.teacherId;
