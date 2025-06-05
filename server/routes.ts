@@ -204,8 +204,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Extract folder ID from the link
-      const GoogleDriveSimple = require('./googleDriveSimple');
-      const folderId = GoogleDriveSimple.extractFolderIdFromLink(driveFolderLink);
+      const { extractFolderIdFromLink } = await import('./googleDriveSimple');
+      const folderId = extractFolderIdFromLink(driveFolderLink);
       
       if (!folderId) {
         return res.status(400).json({ message: "Invalid Google Drive folder link" });
