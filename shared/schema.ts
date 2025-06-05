@@ -16,7 +16,7 @@ import { relations } from "drizzle-orm";
 // Teachers table
 export const teachers = pgTable("teachers", {
   id: serial("id").primaryKey(),
-  googleId: varchar("google_id", { length: 255 }).unique().notNull(),
+  googleId: varchar("google_id", { length: 255 }).unique(),
   email: varchar("email", { length: 255 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   schoolName: varchar("school_name", { length: 255 }),
