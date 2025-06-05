@@ -14,9 +14,15 @@ export class GoogleDriveService {
 
   private async initializeAuth() {
     try {
+      console.log('Initializing Google Drive Service...');
+      
       // Try to use Service Account if available
       if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+        console.log('Found GOOGLE_SERVICE_ACCOUNT_KEY environment variable');
+        
         const serviceAccountKey = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+        console.log('Parsed Service Account JSON, client_email:', serviceAccountKey.client_email);
+        
         this.auth = new google.auth.GoogleAuth({
           credentials: serviceAccountKey,
           scopes: [
@@ -28,12 +34,14 @@ export class GoogleDriveService {
         // Get authenticated client
         const authClient = await this.auth.getClient();
         this.drive = google.drive({ version: 'v3', auth: authClient });
-        console.log('Google Drive Service initialized with Service Account');
+        console.log('✅ Google Drive Service initialized successfully with Service Account');
       } else {
-        console.log('Service Account not available - using OAuth flow instead');
+        console.log('❌ GOOGLE_SERVICE_ACCOUNT_KEY not found - Service Account not available');
       }
     } catch (error) {
-      console.error('Failed to initialize Google Drive Service:', error);
+      console.error('❌ Failed to initialize Google Drive Service:', error);
+      this.auth = null;
+      this.drive = null;
     }
   }
 

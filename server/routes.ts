@@ -323,9 +323,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Try Service Account first for real folder creation
+          console.log(`Processing student: ${student.studentName}`);
           const { googleDriveService } = await import('./googleDriveService');
           
+          console.log(`Service Account configured: ${googleDriveService.isConfigured()}`);
+          
           if (googleDriveService.isConfigured()) {
+            console.log(`Attempting to create Google Drive folder for student: ${student.studentName}`);
             try {
               const result = await googleDriveService.createStudentFolder(teacher, student);
               
@@ -334,14 +338,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   folderCreated: true
                 });
                 created++;
-                console.log(`Successfully created real Google Drive folder for student: ${student.studentName} with ID: ${result.folderId}`);
+                console.log(`✅ Successfully created real Google Drive folder for student: ${student.studentName} with ID: ${result.folderId}`);
                 continue;
               } else {
-                console.error(`Service Account failed for student ${student.studentName}: ${result.error}`);
+                console.error(`❌ Service Account failed for student ${student.studentName}: ${result.error}`);
               }
             } catch (serviceError) {
-              console.error(`Service Account error for student ${student.studentName}:`, serviceError);
+              console.error(`❌ Service Account error for student ${student.studentName}:`, serviceError);
             }
+          } else {
+            console.log(`❌ Service Account not configured, skipping Google Drive creation for: ${student.studentName}`);
           }
           
           // Fallback to OAuth if Service Account fails
