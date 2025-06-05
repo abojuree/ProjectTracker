@@ -168,6 +168,75 @@ export class GoogleDriveService {
     results.success = results.failed === 0;
     return results;
   }
+
+  /**
+   * Upload a file to Google Drive
+   */
+  async uploadFile(
+    folderId: string,
+    fileName: string,
+    fileBuffer: Buffer,
+    mimeType: string
+  ): Promise<{ success: boolean; fileId?: string; error?: string }> {
+    try {
+      if (!this.auth || !this.drive) {
+        return { success: false, error: 'Google Drive Service not initialized' };
+      }
+
+      const fileMetadata = {
+        name: fileName,
+        parents: [folderId]
+      };
+
+      const media = {
+        mimeType: mimeType,
+        body: fileBuffer
+      };
+
+      const response = await this.drive.files.create({
+        requestBody: fileMetadata,
+        media: media,
+        fields: 'id,name,webViewLink'
+      });
+
+      return {
+        success: true,
+        fileId: response.data.id
+      };
+
+    } catch (error) {
+      console.error('Error uploading file to Google Drive:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * Find student folder by civil ID in teacher's main folder
+   */
+  async findStudentFolder(teacherFolderId: string, studentCivilId: string): Promise<string | null> {
+    try {
+      if (!this.auth || !this.drive) {
+        return null;
+      }
+
+      const response = await this.drive.files.list({
+        q: `'${teacherFolderId}' in parents and name='${studentCivilId}' and mimeType='application/vnd.google-apps.folder'`,
+        fields: 'files(id, name)'
+      });
+
+      if (response.data.files && response.data.files.length > 0) {
+        return response.data.files[0].id;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error finding student folder:', error);
+      return null;
+    }
+  }
 }
 
 export const googleDriveService = new GoogleDriveService();

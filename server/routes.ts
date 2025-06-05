@@ -585,6 +585,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
             file.buffer
           );
 
+          let driveFileId = null;
+          let driveUploadSuccess = false;
+
+          // Try to upload to Google Drive if teacher has folder configured
+          if (teacher.driveFolderId) {
+            try {
+              const { googleDriveService } = await import('./googleDriveService');
+              
+              // Find or create student folder
+              let studentFolderId = await googleDriveService.findStudentFolder(teacher.driveFolderId, student.civilId);
+              
+              if (!studentFolderId) {
+                // Create student folder if it doesn't exist
+                const createResult = await googleDriveService.createStudentFolder(teacher, student);
+                if (createResult.success && createResult.folderId) {
+                  studentFolderId = createResult.folderId;
+                }
+              }
+
+              if (studentFolderId) {
+                // Upload file to Google Drive
+                const uploadResult = await googleDriveService.uploadFile(
+                  studentFolderId,
+                  file.originalname,
+                  file.buffer,
+                  file.mimetype
+                );
+
+                if (uploadResult.success) {
+                  driveFileId = uploadResult.fileId;
+                  driveUploadSuccess = true;
+                  console.log(`File uploaded to Google Drive: ${file.originalname}`);
+                } else {
+                  console.error(`Failed to upload to Google Drive: ${uploadResult.error}`);
+                }
+              }
+            } catch (driveError) {
+              console.error('Google Drive upload error:', driveError);
+            }
+          }
+
           // Save file record to database
           const fileRecord = await storage.createFile({
             teacherId,
@@ -603,7 +644,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: fileRecord.id,
             fileName: file.originalname,
             size: file.size,
-            category
+            category,
+            driveUploaded: driveUploadSuccess,
+            driveFileId
           });
 
         } catch (error) {
@@ -619,9 +662,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      const driveUploadedCount = uploadedFiles.filter((f: any) => f.driveUploaded).length;
+      let message = `تم رفع ${uploadedFiles.length} ملف بنجاح للطالب ${student.studentName}`;
+      
+      if (teacher.driveFolderId) {
+        if (driveUploadedCount === uploadedFiles.length) {
+          message += ` وتم رفعها جميعاً إلى Google Drive`;
+        } else if (driveUploadedCount > 0) {
+          message += ` (${driveUploadedCount} منها تم رفعها إلى Google Drive)`;
+        } else {
+          message += ` (لم يتم رفعها إلى Google Drive - يرجى التحقق من الإعدادات)`;
+        }
+      } else {
+        message += ` (لم يتم تكوين Google Drive - الملفات محفوظة محلياً فقط)`;
+      }
+
       res.json({
-        message: `تم رفع ${uploadedFiles.length} ملف بنجاح للطالب ${student.studentName}`,
+        message,
         uploadedFiles,
+        driveInfo: {
+          configured: !!teacher.driveFolderId,
+          uploadedToDrive: driveUploadedCount,
+          totalFiles: uploadedFiles.length
+        },
         errors: errors.length > 0 ? errors : undefined
       });
 
