@@ -194,6 +194,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Google OAuth routes for teachers
+  app.get("/api/teacher/:teacherId/google-auth", async (req, res) => {
+    try {
+      const { googleDriveAPI } = await import('./googleDriveApi');
+      const authUrl = googleDriveAPI.generateAuthUrl();
+      
+      // Store teacher ID in session for callback
+      req.session = req.session || {};
+      req.session.teacherId = req.params.teacherId;
+      
+      res.redirect(authUrl);
+    } catch (error) {
+      console.error("Error generating auth URL:", error);
+      res.status(500).json({ message: "Failed to initiate Google authentication" });
+    }
+  });
+
+  app.get("/api/google-callback", async (req, res) => {
+    try {
+      const { code } = req.query;
+      const teacherId = req.session?.teacherId;
+
+      if (!code || !teacherId) {
+        return res.status(400).send("Invalid authentication callback");
+      }
+
+      const { googleDriveAPI } = await import('./googleDriveApi');
+      const tokens = await googleDriveAPI.getAccessToken(code as string);
+
+      if (tokens.error || !tokens.access_token) {
+        return res.status(400).send("Failed to obtain access token");
+      }
+
+      // Save tokens to teacher record
+      await storage.updateTeacher(parseInt(teacherId), {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token || null
+      });
+
+      // Clear session
+      if (req.session) {
+        delete req.session.teacherId;
+      }
+
+      res.redirect(`/teacher-dashboard/${teacherId}?google-connected=true`);
+    } catch (error) {
+      console.error("Error in Google callback:", error);
+      res.status(500).send("Authentication failed");
+    }
+  });
+
   app.post("/api/teacher/:teacherId/drive-link", async (req, res) => {
     try {
       const teacherId = parseInt(req.params.teacherId);
@@ -251,8 +302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let skipped = 0;
       const details: string[] = [];
 
-      // For now, we'll simulate folder creation since we don't have OAuth access
-      // In reality, this would use Google Drive API to create actual folders
+      // Use Google Drive API to create actual folders
       for (const student of students) {
         try {
           // Skip if folder already created
@@ -261,13 +311,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
           
-          // Simulate folder creation by updating the folderCreated flag
-          await storage.updateStudent(student.id, {
-            folderCreated: true
-          });
-          
-          created++;
-          console.log(`Created Google Drive folder for student: ${student.studentName}`);
+          // Try to create folder using Google Drive API with teacher's access token
+          try {
+            if (!teacher.accessToken) {
+              failed++;
+              details.push(`المعلم بحاجة لربط حساب Google Drive للطالب: ${student.studentName}`);
+              continue;
+            }
+
+            const { googleDriveAPI } = await import('./googleDriveApi');
+            const result = await googleDriveAPI.createStudentFolderStructure(student, teacher, teacher.accessToken);
+            
+            if (result.success) {
+              await storage.updateStudent(student.id, {
+                folderCreated: true
+              });
+              created++;
+              console.log(`Successfully created Google Drive folder for student: ${student.studentName}`);
+            } else {
+              failed++;
+              details.push(`فشل في إنشاء مجلد للطالب ${student.studentName}: ${result.error || 'خطأ غير معروف'}`);
+            }
+          } catch (apiError) {
+            failed++;
+            details.push(`خطأ في الاتصال بـ Google Drive للطالب: ${student.studentName}`);
+            console.error('Google Drive API Error:', apiError);
+          }
         } catch (error) {
           failed++;
           details.push(`فشل في إنشاء مجلد للطالب: ${student.studentName}`);
