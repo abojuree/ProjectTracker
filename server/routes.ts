@@ -23,22 +23,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Simple teacher registration for testing
   app.post('/api/teacher/simple-register', async (req, res) => {
     try {
-      const { name, schoolName } = req.body;
+      const { name, schoolName, email, driveFolderLink } = req.body;
       
-      if (!name || !schoolName) {
+      if (!name || !schoolName || !email) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
       const linkCode = `${name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`;
+      
+      // Extract folder ID from Google Drive link if provided
+      let driveFolderId = null;
+      if (driveFolderLink) {
+        const match = driveFolderLink.match(/\/folders\/([a-zA-Z0-9-_]+)/);
+        if (match) {
+          driveFolderId = match[1];
+        }
+      }
+
       const teacher = await storage.createTeacher({
         name: name.trim(),
         schoolName: schoolName.trim(),
-        email: `${name.replace(/\s+/g, '.')}@${schoolName.replace(/\s+/g, '.')}.local`,
+        email: email.trim(),
         linkCode,
         googleId: null,
         accessToken: null,
         refreshToken: null,
-        driveFolderId: null,
+        driveFolderId,
         profileImageUrl: null,
         isActive: true
       });

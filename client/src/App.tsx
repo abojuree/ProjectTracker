@@ -9,6 +9,7 @@ import TeacherDashboard from "@/pages/teacher-dashboard";
 import ParentAccess from "@/pages/parent-access";
 import SimpleTeacherOnboarding from "@/pages/simple-teacher-onboarding";
 import Register from "@/pages/register";
+import SimpleRegistration from "@/pages/simple-registration";
 import { useTeacherAuth } from "@/hooks/useTeacherAuth";
 
 function Router() {
@@ -40,6 +41,7 @@ function Router() {
         </>
       )}
       <Route path="/register" component={Register} />
+      <Route path="/simple-registration" component={SimpleRegistration} />
       <Route path="/simple-teacher-onboarding" component={SimpleTeacherOnboarding} />
       <Route path="/teacher-dashboard/:teacherId" component={TeacherDashboard} />
       <Route path="/parent-access" component={ParentAccess} />
