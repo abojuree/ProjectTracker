@@ -64,10 +64,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Legacy OAuth redirect route for compatibility
-  app.get('/api/auth/google', (req, res) => {
-    // Redirect to teacher dashboard for proper OAuth flow
-    res.redirect('/teacher-dashboard/14');
+  // Direct Google OAuth route (assumes teacher ID 14 for demo)
+  app.get('/api/auth/google', async (req, res) => {
+    try {
+      const { google } = await import('googleapis');
+      
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        `https://project-tracker-abojuree1.replit.app/api/google-callback`
+      );
+
+      const scopes = [
+        'https://www.googleapis.com/auth/drive',
+        'https://www.googleapis.com/auth/drive.file',
+        'https://www.googleapis.com/auth/userinfo.email'
+      ];
+
+      const authUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: scopes,
+        prompt: 'consent',
+        state: '14' // Default teacher ID for demo
+      });
+
+      res.redirect(authUrl);
+    } catch (error) {
+      console.error('Error generating Google auth URL:', error);
+      res.status(500).send('Failed to generate auth URL');
+    }
   });
 
   // Google OAuth for Drive access
