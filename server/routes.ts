@@ -536,6 +536,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // File upload for specific student
+  app.post("/api/teacher/:teacherId/students/:studentId/upload", upload.array('files', 10), async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      const studentId = parseInt(req.params.studentId);
+      const category = req.body.category || 'general';
+      
+      if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+        return res.status(400).json({ message: "لم يتم رفع أي ملفات" });
+      }
+
+      // Get teacher and student info
+      const teacher = await storage.getTeacher(teacherId);
+      const student = await storage.getStudent(studentId);
+      
+      if (!teacher || !student) {
+        return res.status(404).json({ message: "المعلم أو الطالب غير موجود" });
+      }
+
+      // Validate that student belongs to this teacher
+      if (student.teacherId !== teacherId) {
+        return res.status(403).json({ message: "غير مصرح بالوصول لهذا الطالب" });
+      }
+
+      const uploadedFiles = [];
+      const errors = [];
+
+      for (const file of req.files as Express.Multer.File[]) {
+        try {
+          // Save file to local storage
+          const filePath = await fileStorage.saveFile(
+            teacherId,
+            student.civilId,
+            student.name,
+            file.originalname,
+            file.buffer
+          );
+
+          // Save file record to database
+          const fileRecord = await storage.createFile({
+            teacherId,
+            studentCivilId: student.civilId,
+            fileName: file.originalname,
+            filePath,
+            fileSize: file.size,
+            mimeType: file.mimetype,
+            category,
+            subject: student.subject || 'عام'
+          });
+
+          uploadedFiles.push({
+            id: fileRecord.id,
+            fileName: file.originalname,
+            size: file.size,
+            category
+          });
+
+        } catch (error) {
+          console.error(`Error uploading file ${file.originalname}:`, error);
+          errors.push(`فشل في رفع الملف: ${file.originalname}`);
+        }
+      }
+
+      if (uploadedFiles.length === 0) {
+        return res.status(500).json({ 
+          message: "فشل في رفع جميع الملفات",
+          errors 
+        });
+      }
+
+      res.json({
+        message: `تم رفع ${uploadedFiles.length} ملف بنجاح للطالب ${student.name}`,
+        uploadedFiles,
+        errors: errors.length > 0 ? errors : undefined
+      });
+
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      res.status(500).json({ message: "خطأ في رفع الملفات" });
+    }
+  });
+
+  // Get files for a specific student
+  app.get("/api/teacher/:teacherId/students/:studentId/files", async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      const studentId = parseInt(req.params.studentId);
+      
+      const student = await storage.getStudent(studentId);
+      if (!student || student.teacherId !== teacherId) {
+        return res.status(404).json({ message: "الطالب غير موجود" });
+      }
+
+      const files = await storage.getFilesByStudent(student.civilId, teacherId);
+      res.json(files);
+
+    } catch (error) {
+      console.error("Error fetching student files:", error);
+      res.status(500).json({ message: "خطأ في جلب ملفات الطالب" });
+    }
+  });
+
   app.post("/api/teacher/:teacherId/students/upload-excel", upload.single('file'), async (req, res) => {
     try {
       const teacherId = parseInt(req.params.teacherId);
