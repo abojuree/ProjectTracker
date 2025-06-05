@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Cloud, CheckCircle, AlertCircle } from "lucide-react";
+import { Cloud, CheckCircle, AlertCircle, Link } from "lucide-react";
 import type { Teacher } from "@shared/schema";
 
 interface GoogleDriveConnectProps {
@@ -15,6 +17,7 @@ interface GoogleDriveConnectProps {
 
 export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveConnectProps) {
   const [isConnecting, setIsConnecting] = useState(false);
+  const [driveLink, setDriveLink] = useState(teacher.driveFolderId || '');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -73,6 +76,44 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
     connectGoogleMutation.mutate();
   };
 
+  const saveDriveLinkMutation = useMutation({
+    mutationFn: async (folderLink: string) => {
+      return await apiRequest(`/api/teacher/${teacherId}/drive-link`, {
+        method: 'POST',
+        body: JSON.stringify({ driveFolderLink: folderLink }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "تم الحفظ بنجاح",
+        description: "تم حفظ رابط Google Drive وسيتم استخدامه لإنشاء مجلدات الطلاب",
+        variant: "default",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}`] });
+    },
+    onError: (error) => {
+      console.error("Save drive link error:", error);
+      toast({
+        title: "خطأ في الحفظ",
+        description: "فشل في حفظ رابط Google Drive. حاول مرة أخرى.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveDriveLink = () => {
+    if (!driveLink.trim()) {
+      toast({
+        title: "رابط مطلوب",
+        description: "يرجى إدخال رابط مجلد Google Drive",
+        variant: "destructive",
+      });
+      return;
+    }
+    saveDriveLinkMutation.mutate(driveLink.trim());
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -96,7 +137,7 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
               <AlertDescription>
                 <strong>مشكلة مؤقتة في OAuth:</strong> يظهر رفض الاتصال مع Google. 
                 <br />
-                <strong>الحل:</strong> في Google Cloud Console → OAuth consent screen → انقر "PUBLISH APP" لتغيير الوضع من Testing إلى Production
+                <strong>الحل البديل:</strong> أدخل رابط مجلد Google Drive مباشرة أدناه للمتابعة
               </AlertDescription>
             </Alert>
             
