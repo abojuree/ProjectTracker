@@ -57,9 +57,21 @@ export default function SimpleRegistration() {
     } catch (error: any) {
       console.error('Registration Error:', error);
       
+      let errorMessage = "يرجى المحاولة مرة أخرى";
+      
+      if (error.message) {
+        if (error.message.includes('400')) {
+          errorMessage = "يرجى التأكد من صحة البيانات المدخلة";
+        } else if (error.message.includes('500')) {
+          errorMessage = "خطأ في الخادم، يرجى المحاولة لاحقاً";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "خطأ في التسجيل",
-        description: "يرجى المحاولة مرة أخرى",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
