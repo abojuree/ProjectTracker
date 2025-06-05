@@ -58,7 +58,13 @@ export default function Landing() {
                 <FolderOpen className="h-8 w-8 text-primary ml-3" />
                 <span className="text-xl font-bold text-gray-900">نظام إدارة ملفات الطلاب</span>
               </div>
-              <div className="flex items-center">
+              <div className="flex items-center gap-3">
+                <Button 
+                  variant="outline"
+                  onClick={() => setLocation('/teacher-login')}
+                >
+                  تسجيل الدخول
+                </Button>
                 <Button 
                   onClick={() => setLocation('/simple-registration')}
                   className="bg-primary hover:bg-primary/90"
