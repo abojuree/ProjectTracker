@@ -111,18 +111,10 @@ export function useTeacherAuth() {
 
   // Check if we need to complete post-OAuth registration
   useEffect(() => {
+    // Skip OAuth completion for new simple registration system
     if (!isCheckingSession && !currentSession && TeacherSessionManager.hasRegistrationData()) {
-      // User returned from Google OAuth, need to complete registration
-      const regData = TeacherSessionManager.getRegistrationData();
-      if (regData && regData.teacherName && regData.schoolName) {
-        // Auto-complete registration if we have the data
-        handlePostOAuthRegistration.mutate({
-          teacherId: regData.teacherId, // This would come from OAuth callback
-          teacherName: regData.teacherName,
-          schoolName: regData.schoolName,
-          driveFolder: regData.driveFolder
-        });
-      }
+      // Clear old registration data for new system
+      TeacherSessionManager.clearRegistrationData();
     }
   }, [isCheckingSession, currentSession]);
 
