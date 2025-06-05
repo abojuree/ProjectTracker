@@ -366,13 +366,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { teacherId, teacherName, schoolName, driveFolder } = req.body;
       
-      if (!teacherId || !teacherName || !schoolName) {
+      if (!teacherId || !teacherName) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
       const teacher = await storage.updateTeacher(teacherId, {
         name: teacherName,
-        schoolName,
+        schoolName: schoolName || null,
         driveFolderId: driveFolder || null
       });
 

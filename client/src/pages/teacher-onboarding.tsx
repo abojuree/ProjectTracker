@@ -13,63 +13,54 @@ import { Upload, School, FileSpreadsheet } from "lucide-react";
 export default function TeacherOnboarding() {
   const [step, setStep] = useState(1);
   const [teacherName, setTeacherName] = useState("");
+  const [schoolName, setSchoolName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const handleGoogleAuth = async () => {
+  const handleSimpleRegistration = async () => {
     try {
       setIsLoading(true);
-      const googleAuth = GoogleDriveAuth.getInstance();
-      await googleAuth.initialize();
-      const user = await googleAuth.signIn();
       
-      // Register teacher with Google account and store access token
-      const response = await apiRequest('POST', '/api/auth/google/register', {
-        name: teacherName,
-        googleId: user.id,
-        email: user.email,
-        profileImageUrl: user.picture,
-        accessToken: user.accessToken
-      });
-
-      const teacherData = await response.json();
-      
-      setIsGoogleConnected(true);
-      localStorage.setItem('teacherId', teacherData.id.toString());
-      localStorage.setItem('google_access_token', user.accessToken);
-      
-      // Create main teacher folder in Google Drive
-      try {
-        const folderId = await googleAuth.createFolder(`ملفات ${teacherName} - طلاب`);
-        await apiRequest('PUT', `/api/teacher/${teacherData.id}/drive-folder`, {
-          driveFolderId: folderId
+      if (!teacherName.trim() || !schoolName.trim()) {
+        toast({
+          title: "بيانات ناقصة",
+          description: "يرجى إدخال اسم المعلم واسم المدرسة",
+          variant: "destructive",
         });
-      } catch (error) {
-        console.warn('Failed to create Drive folder:', error);
+        return;
       }
 
+      // Create teacher with local storage
+      const teacherData = {
+        id: Date.now(),
+        name: teacherName.trim(),
+        schoolName: schoolName.trim(),
+        email: `${teacherName.replace(/\s+/g, '.')}@${schoolName.replace(/\s+/g, '.')}.local`,
+        linkCode: `${teacherName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`,
+        googleId: null,
+        accessToken: null,
+        isActive: true
+      };
+
+      // Store teacher data locally
+      localStorage.setItem('teacherId', teacherData.id.toString());
+      localStorage.setItem('teacherData', JSON.stringify(teacherData));
+      
       toast({
-        title: "تم ربط حساب Google بنجاح",
-        description: "تم إنشاء مجلد رئيسي في Google Drive",
+        title: "تم إنشاء الحساب بنجاح",
+        description: "يمكنك الآن البدء في إدارة ملفات الطلاب",
       });
       
-      // Redirect to teacher dashboard with correct teacherId
+      // Redirect to teacher dashboard
       setLocation(`/teacher-dashboard/${teacherData.id}`);
     } catch (error: any) {
-      console.error('Google Auth Error:', error);
-      
-      let errorMessage = "يرجى المحاولة مرة أخرى";
-      if (error.message?.includes('popup_blocked')) {
-        errorMessage = "يرجى السماح للنوافذ المنبثقة في المتصفح";
-      } else if (error.message?.includes('redirect_uri_mismatch')) {
-        errorMessage = "خطأ في إعدادات Google Cloud Console - يرجى إضافة النطاق المصرح به";
-      }
+      console.error('Registration Error:', error);
       
       toast({
-        title: "خطأ في ربط حساب Google",
-        description: errorMessage,
+        title: "خطأ في التسجيل",
+        description: "يرجى المحاولة مرة أخرى",
         variant: "destructive",
       });
     } finally {
@@ -100,7 +91,7 @@ export default function TeacherOnboarding() {
             </div>
             <CardTitle className="text-2xl font-bold">مرحباً بك في نظام إدارة ملفات الطلاب</CardTitle>
             <CardDescription>
-              لبدء استخدام النظام، يرجى إدخال اسمك وربط حساب Google Drive
+              لبدء استخدام النظام، يرجى إدخال بياناتك الأساسية
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -117,45 +108,31 @@ export default function TeacherOnboarding() {
               />
             </div>
             
+            <div className="space-y-2">
+              <Label htmlFor="schoolName">اسم المدرسة</Label>
+              <Input
+                id="schoolName"
+                type="text"
+                placeholder="أدخل اسم المدرسة"
+                value={schoolName}
+                onChange={(e) => setSchoolName(e.target.value)}
+                className="text-right"
+                dir="rtl"
+              />
+            </div>
+            
             <Button
-              onClick={handleGoogleAuth}
-              disabled={!teacherName.trim() || isLoading}
+              onClick={handleSimpleRegistration}
+              disabled={!teacherName.trim() || !schoolName.trim() || isLoading}
               className="w-full"
               size="lg"
             >
-              {isLoading ? (
-                "جاري الربط..."
-              ) : (
-                <>
-                  <FcGoogle className="ml-2 h-5 w-5" />
-                  ربط حساب Google Drive
-                </>
-              )}
+              {isLoading ? "جاري إنشاء الحساب..." : "إنشاء حساب وبدء الاستخدام"}
             </Button>
 
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">أو</p>
-              <Button
-                onClick={() => {
-                  // Create demo teacher account
-                  localStorage.setItem('teacherId', '1');
-                  setLocation("/teacher-dashboard/1");
-                }}
-                variant="outline"
-                className="w-full"
-                size="sm"
-              >
-                متابعة بدون Google Drive (للاختبار)
-              </Button>
-            </div>
-
-            <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
-              <p className="text-xs text-amber-700 dark:text-amber-300 text-center">
-                إذا واجهت خطأ في Google Drive، يجب إضافة النطاق التالي في Google Cloud Console:
-                <br />
-                <code className="text-xs bg-white dark:bg-gray-800 px-1 rounded">
-                  {window.location.origin}
-                </code>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+              <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
+                النظام يستخدم التخزين المحلي الآمن لحفظ ملفات الطلاب
               </p>
             </div>
           </CardContent>
@@ -232,7 +209,12 @@ export default function TeacherOnboarding() {
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
                     // Handle file upload
-                    setLocation("/teacher-dashboard");
+                    const teacherId = localStorage.getItem('teacherId');
+                    if (teacherId) {
+                      setLocation(`/teacher-dashboard/${teacherId}`);
+                    } else {
+                      setLocation("/teacher-dashboard/1");
+                    }
                   }
                 }}
               />
