@@ -39,6 +39,7 @@ function Router() {
           <Route path="/teacher/:teacherId" component={TeacherDashboard} />
         </>
       )}
+      <Route path="/register" component={Register} />
       <Route path="/simple-teacher-onboarding" component={SimpleTeacherOnboarding} />
       <Route path="/teacher-dashboard/:teacherId" component={TeacherDashboard} />
       <Route path="/parent-access" component={ParentAccess} />
