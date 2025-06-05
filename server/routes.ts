@@ -25,13 +25,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/teacher/simple-register', async (req, res) => {
     try {
       console.log('Simple registration request:', req.body);
-      const { name, schoolName, email, driveFolderLink } = req.body;
+      const { name, schoolName, email, password, driveFolderLink } = req.body;
       
-      console.log('Extracted fields:', { name, schoolName, email, driveFolderLink });
+      console.log('Extracted fields:', { name, schoolName, email, password: !!password, driveFolderLink });
       
-      if (!name || !schoolName || !email) {
-        console.log('Missing fields validation failed:', { name: !!name, schoolName: !!schoolName, email: !!email });
-        return res.status(400).json({ message: "Missing required fields", received: { name: !!name, schoolName: !!schoolName, email: !!email } });
+      if (!name || !schoolName || !email || !password) {
+        console.log('Missing fields validation failed:', { name: !!name, schoolName: !!schoolName, email: !!email, password: !!password });
+        return res.status(400).json({ message: "جميع الحقول مطلوبة", received: { name: !!name, schoolName: !!schoolName, email: !!email, password: !!password } });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ message: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" });
       }
 
       const linkCode = `${name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`;
@@ -45,10 +49,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Hash password
+      const saltRounds = 10;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+
       const teacher = await storage.createTeacher({
         name: name.trim(),
         schoolName: schoolName.trim(),
         email: email.trim(),
+        passwordHash,
         linkCode,
         googleId: null,
         accessToken: null,

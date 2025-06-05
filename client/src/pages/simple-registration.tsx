@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { School, Upload, FileText } from "lucide-react";
+import { School, Upload, FileText, Eye, EyeOff, Lock } from "lucide-react";
 
 export default function SimpleRegistration() {
   const [step, setStep] = useState(1);
@@ -14,14 +14,16 @@ export default function SimpleRegistration() {
     name: "",
     schoolName: "",
     email: "",
+    password: "",
     driveFolderLink: ""
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const handleBasicInfo = () => {
-    if (!teacherData.name.trim() || !teacherData.schoolName.trim() || !teacherData.email.trim()) {
+    if (!teacherData.name.trim() || !teacherData.schoolName.trim() || !teacherData.email.trim() || !teacherData.password.trim()) {
       toast({
         title: "بيانات ناقصة",
         description: "يرجى إدخال جميع البيانات المطلوبة",
@@ -29,6 +31,16 @@ export default function SimpleRegistration() {
       });
       return;
     }
+
+    if (teacherData.password.length < 6) {
+      toast({
+        title: "كلمة مرور ضعيفة",
+        description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setStep(2);
   };
 
@@ -40,6 +52,7 @@ export default function SimpleRegistration() {
         name: teacherData.name.trim(),
         schoolName: teacherData.schoolName.trim(),
         email: teacherData.email.trim(),
+        password: teacherData.password.trim(),
         driveFolderLink: teacherData.driveFolderLink.trim() || null
       });
 
@@ -130,10 +143,34 @@ export default function SimpleRegistration() {
                 dir="ltr"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">كلمة المرور</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="أدخل كلمة مرور قوية (6 أحرف على الأقل)"
+                  value={teacherData.password}
+                  onChange={(e) => setTeacherData({...teacherData, password: e.target.value})}
+                  className="pl-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500">
+                يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل لحماية حسابك
+              </p>
+            </div>
             
             <Button
               onClick={handleBasicInfo}
-              disabled={!teacherData.name.trim() || !teacherData.schoolName.trim() || !teacherData.email.trim()}
+              disabled={!teacherData.name.trim() || !teacherData.schoolName.trim() || !teacherData.email.trim() || !teacherData.password.trim()}
               className="w-full"
               size="lg"
             >
