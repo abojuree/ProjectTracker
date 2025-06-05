@@ -3,6 +3,7 @@ import { useState } from "react";
 import StatsOverview from "@/components/teacher/stats-overview";
 import StudentManagement from "@/components/teacher/student-management";
 import FileManagement from "@/components/teacher/file-management";
+import FileUpload from "@/components/teacher/file-upload";
 import ParentLinkGenerator from "@/components/teacher/parent-link-generator";
 import GoogleDriveConnect from "@/components/teacher/GoogleDriveConnect";
 import FolderInstructions from "@/components/teacher/FolderInstructions";
@@ -16,7 +17,7 @@ export default function TeacherDashboard() {
   const { currentSession, logout } = useTeacherAuth();
   const currentTeacherId = currentSession?.teacherId || parseInt(teacherId || "1");
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'students' | 'files' | 'parent-links'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'students' | 'files' | 'upload-files' | 'parent-links'>('overview');
   
   const { data: teacher, isLoading: teacherLoading } = useTeacher(currentTeacherId);
 
@@ -90,6 +91,16 @@ export default function TeacherDashboard() {
               }`}
             >
               إدارة الملفات
+            </button>
+            <button
+              onClick={() => setActiveTab('upload-files')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'upload-files'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              رفع ملفات الطلاب
             </button>
             <button
               onClick={() => setActiveTab('parent-links')}

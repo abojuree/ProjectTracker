@@ -196,9 +196,9 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
                       {student.grade}
                     </Badge>
                   )}
-                  {student.className && (
+                  {student.classNumber && (
                     <Badge variant="outline" className="text-xs">
-                      {student.className}
+                      {student.classNumber}
                     </Badge>
                   )}
                 </div>
@@ -214,7 +214,7 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Upload className="w-5 h-5" />
-              رفع ملفات للطالب: {selectedStudent.name}
+              رفع ملفات للطالب: {selectedStudent.studentName}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

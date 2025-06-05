@@ -569,7 +569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const filePath = await fileStorage.saveFile(
             teacherId,
             student.civilId,
-            student.name,
+            student.studentName,
             file.originalname,
             file.buffer
           );
@@ -578,11 +578,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const fileRecord = await storage.createFile({
             teacherId,
             studentCivilId: student.civilId,
-            fileName: file.originalname,
+            originalName: file.originalname,
+            systemName: file.originalname,
             filePath,
+            fileUrl: fileStorage.getFileUrl(filePath),
             fileSize: file.size,
-            mimeType: file.mimetype,
-            category,
+            fileType: file.mimetype,
+            fileCategory: category,
             subject: student.subject || 'عام'
           });
 
@@ -607,7 +609,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({
-        message: `تم رفع ${uploadedFiles.length} ملف بنجاح للطالب ${student.name}`,
+        message: `تم رفع ${uploadedFiles.length} ملف بنجاح للطالب ${student.studentName}`,
         uploadedFiles,
         errors: errors.length > 0 ? errors : undefined
       });
