@@ -73,11 +73,11 @@ export class GoogleDriveService {
 
       const folderName = `${student.studentName} - ${student.civilId}`;
       
-      // Create folder in Service Account's drive first, then share with teacher
+      // Create folder inside teacher's specified Google Drive folder
       const folderMetadata = {
         name: folderName,
-        mimeType: 'application/vnd.google-apps.folder'
-        // Don't specify parent - create in Service Account root first
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: teacher.driveFolderId ? [teacher.driveFolderId] : undefined
       };
 
       const folderResponse = await this.drive.files.create({
