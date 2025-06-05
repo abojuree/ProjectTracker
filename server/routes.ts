@@ -194,6 +194,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/teacher/:teacherId/drive-link", async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      const { driveFolderLink } = req.body;
+
+      if (!driveFolderLink || typeof driveFolderLink !== 'string') {
+        return res.status(400).json({ message: "Drive folder link is required" });
+      }
+
+      // Extract folder ID from the link
+      const GoogleDriveSimple = require('./googleDriveSimple');
+      const folderId = GoogleDriveSimple.extractFolderIdFromLink(driveFolderLink);
+      
+      if (!folderId) {
+        return res.status(400).json({ message: "Invalid Google Drive folder link" });
+      }
+
+      // Update teacher with the folder ID
+      const updatedTeacher = await storage.updateTeacher(teacherId, {
+        driveFolderId: folderId
+      });
+
+      res.json({ 
+        message: "Drive folder link saved successfully", 
+        teacher: updatedTeacher 
+      });
+    } catch (error) {
+      console.error("Error saving drive link:", error);
+      res.status(500).json({ message: "Failed to save drive link" });
+    }
+  });
+
   // Student routes
   app.get("/api/teacher/:teacherId/students", async (req, res) => {
     try {

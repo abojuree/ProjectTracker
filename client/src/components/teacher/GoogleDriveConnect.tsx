@@ -78,11 +78,7 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
 
   const saveDriveLinkMutation = useMutation({
     mutationFn: async (folderLink: string) => {
-      return await apiRequest(`/api/teacher/${teacherId}/drive-link`, {
-        method: 'POST',
-        body: JSON.stringify({ driveFolderLink: folderLink }),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return await apiRequest(`/api/teacher/${teacherId}/drive-link`, 'POST', { driveFolderLink: folderLink });
     },
     onSuccess: () => {
       toast({
@@ -141,23 +137,66 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
               </AlertDescription>
             </Alert>
             
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                بعد الربط سيتمكن النظام من:
-              </p>
-              <ul className="text-sm text-muted-foreground space-y-1 mr-4">
-                <li>• إنشاء مجلد منظم لكل طالب تلقائياً</li>
-                <li>• رفع ملفات الطلاب مباشرة لحسابك</li>
-                <li>• مشاركة الملفات مع أولياء الأمور بأمان</li>
-              </ul>
-              
-              <Button 
-                onClick={handleConnectGoogle}
-                disabled={isConnecting}
-                className="w-full"
-              >
-                {isConnecting ? "جاري الربط..." : "ربط حساب Google Drive"}
-              </Button>
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  جرب الربط التلقائي أولاً:
+                </p>
+                <Button 
+                  onClick={handleConnectGoogle}
+                  disabled={isConnecting}
+                  className="w-full"
+                >
+                  {isConnecting ? "جاري الربط..." : "ربط حساب Google Drive"}
+                </Button>
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">أو</span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="driveLink" className="text-sm font-medium">
+                  أدخل رابط مجلد Google Drive يدوياً:
+                </Label>
+                <div className="space-y-2">
+                  <Input
+                    id="driveLink"
+                    placeholder="https://drive.google.com/drive/folders/..."
+                    value={driveLink}
+                    onChange={(e) => setDriveLink(e.target.value)}
+                    className="text-right"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    انسخ رابط المجلد الرئيسي من Google Drive وألصقه هنا
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleSaveDriveLink}
+                  disabled={saveDriveLinkMutation.isPending || !driveLink.trim()}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <Link className="h-4 w-4 ml-2" />
+                  {saveDriveLinkMutation.isPending ? "جاري الحفظ..." : "حفظ رابط Google Drive"}
+                </Button>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  بعد الربط سيتمكن النظام من:
+                </p>
+                <ul className="text-sm text-muted-foreground space-y-1 mr-4">
+                  <li>• إنشاء مجلد منظم لكل طالب تلقائياً</li>
+                  <li>• رفع ملفات الطلاب مباشرة لحسابك</li>
+                  <li>• مشاركة الملفات مع أولياء الأمور بأمان</li>
+                </ul>
+              </div>
             </div>
           </>
         )}
