@@ -37,7 +37,7 @@ export default function TeacherLogin() {
         title: "تم تسجيل الدخول بنجاح",
         description: `مرحباً ${data.teacher.name}`
       });
-      setLocation(`/teacher/${data.teacher.id}`);
+      setLocation(`/teacher-dashboard/${data.teacher.id}`);
     },
     onError: (error: any) => {
       // If password is not set for this teacher, show password setup
