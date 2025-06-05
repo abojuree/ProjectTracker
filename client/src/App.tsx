@@ -3,25 +3,16 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useEffect, useState } from "react";
 import NotFound from "@/pages/not-found";
-import TeacherOnboarding from "@/pages/teacher-onboarding";
+import Landing from "@/pages/landing";
 import TeacherDashboard from "@/pages/teacher-dashboard";
 import ParentAccess from "@/pages/parent-access";
+import { useTeacherAuth } from "@/hooks/useTeacherAuth";
 
 function Router() {
-  const [isTeacherRegistered, setIsTeacherRegistered] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, isCheckingSession } = useTeacherAuth();
 
-  useEffect(() => {
-    const teacherId = localStorage.getItem('teacherId');
-    if (teacherId) {
-      setIsTeacherRegistered(true);
-    }
-    setIsLoading(false);
-  }, []);
-
-  if (isLoading) {
+  if (isCheckingSession) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
@@ -34,10 +25,10 @@ function Router() {
 
   return (
     <Switch>
-      {!isTeacherRegistered ? (
+      {!isAuthenticated ? (
         <>
-          <Route path="/" component={TeacherOnboarding} />
-          <Route path="/onboarding" component={TeacherOnboarding} />
+          <Route path="/" component={Landing} />
+          <Route path="/landing" component={Landing} />
         </>
       ) : (
         <>
@@ -46,6 +37,7 @@ function Router() {
           <Route path="/teacher/:teacherId" component={TeacherDashboard} />
         </>
       )}
+      <Route path="/parent-access" component={ParentAccess} />
       <Route path="/parent/:linkCode" component={ParentAccess} />
       <Route path="/p/:linkCode" component={ParentAccess} />
       <Route component={NotFound} />

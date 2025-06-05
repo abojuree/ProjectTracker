@@ -361,6 +361,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update teacher profile after Google auth
+  app.post('/api/teacher/update-profile', async (req, res) => {
+    try {
+      const { teacherId, teacherName, schoolName, driveFolder } = req.body;
+      
+      if (!teacherId || !teacherName || !schoolName) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const teacher = await storage.updateTeacher(teacherId, {
+        name: teacherName,
+        schoolName,
+        driveFolderId: driveFolder || null
+      });
+
+      res.json({ teacher });
+    } catch (error) {
+      console.error("Error updating teacher profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // Get teacher by Google ID (for session restoration)
+  app.get('/api/teacher/by-google/:googleId', async (req, res) => {
+    try {
+      const { googleId } = req.params;
+      const teacher = await storage.getTeacherByGoogleId(googleId);
+      
+      if (!teacher) {
+        return res.status(404).json({ message: "Teacher not found" });
+      }
+
+      res.json({ teacher });
+    } catch (error) {
+      console.error("Error getting teacher by Google ID:", error);
+      res.status(500).json({ message: "Failed to get teacher" });
+    }
+  });
+
   // Teacher Google authentication routes
   app.post('/api/auth/google/register', async (req, res) => {
     try {

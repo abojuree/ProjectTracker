@@ -66,7 +66,9 @@ export async function setupGoogleAuth(app: Express) {
       let teacher = await storage.getTeacherByGoogleId(userInfo.id);
       
       if (!teacher) {
-        // Create new teacher
+        // Create new teacher with registration data from session
+        // Note: Registration data would come from client-side session storage
+        // For now, use Google account info as fallback
         const linkCode = generateLinkCode(userInfo.name || userInfo.email);
         teacher = await storage.createTeacher({
           googleId: userInfo.id,
@@ -76,6 +78,7 @@ export async function setupGoogleAuth(app: Express) {
           refreshToken: tokens.refresh_token || null,
           linkCode,
           driveFolderId: null,
+          schoolName: '', // Will be updated via API call from frontend
         });
       } else {
         // Update existing teacher's tokens
