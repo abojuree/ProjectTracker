@@ -4,13 +4,12 @@ import StatsOverview from "@/components/teacher/stats-overview";
 import StudentManagement from "@/components/teacher/student-management";
 import FileManagement from "@/components/teacher/file-management";
 import ParentLinkGenerator from "@/components/teacher/parent-link-generator";
-import Sidebar from "@/components/teacher/sidebar";
 import { useTeacher } from "@/hooks/use-teacher";
 import { useTeacherAuth } from "@/hooks/useTeacherAuth";
 
 export default function TeacherDashboard() {
   const { teacherId } = useParams();
-  const { currentSession } = useTeacherAuth();
+  const { currentSession, logout } = useTeacherAuth();
   const currentTeacherId = currentSession?.teacherId || parseInt(teacherId || "1");
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'students' | 'files' | 'parent-links'>('overview');
@@ -31,58 +30,108 @@ export default function TeacherDashboard() {
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Navigation Header */}
-      <nav className="gradient-bg text-white shadow-lg sticky top-0 z-50">
+      <nav className="bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <i className="fas fa-folder-open text-2xl ml-3"></i>
-                <span className="text-xl font-bold">نظام إدارة ملفات الطلاب</span>
+                <span className="text-xl font-bold text-gray-900">نظام إدارة ملفات الطلاب</span>
               </div>
             </div>
             <div className="flex items-center space-x-reverse space-x-4">
-              <div className="text-sm">
-                مرحباً، {teacher?.name || "المعلم"}
+              <div className="text-sm text-gray-700">
+                مرحباً، {currentSession?.name || teacher?.name || "المعلم"}
               </div>
-              <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
-                <i className="fas fa-user text-sm"></i>
-              </div>
-              <button className="text-white hover:text-gray-200 transition-colors">
-                <i className="fas fa-sign-out-alt"></i>
+              <button 
+                onClick={logout}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                تسجيل الخروج
               </button>
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Overview */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-6">لوحة التحكم الرئيسية</h1>
-          <StatsOverview teacherId={currentTeacherId} />
+      {/* Tab Navigation */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-8 space-x-reverse">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'overview'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              نظرة عامة
+            </button>
+            <button
+              onClick={() => setActiveTab('students')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'students'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              إدارة الطلاب
+            </button>
+            <button
+              onClick={() => setActiveTab('files')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'files'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              إدارة الملفات
+            </button>
+            <button
+              onClick={() => setActiveTab('parent-links')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'parent-links'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              روابط أولياء الأمور
+            </button>
+          </nav>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            <StatsOverview teacherId={currentTeacherId} />
+          </div>
+        )}
+
+        {activeTab === 'students' && (
+          <div className="space-y-6">
             <StudentManagement 
-              teacherId={currentTeacherId}
+              teacherId={currentTeacherId} 
               onStudentSelect={setSelectedStudent}
             />
+          </div>
+        )}
+
+        {activeTab === 'files' && (
+          <div className="space-y-6">
             <FileManagement 
               teacherId={currentTeacherId}
               selectedStudent={selectedStudent}
             />
           </div>
+        )}
 
-          {/* Sidebar */}
+        {activeTab === 'parent-links' && teacher && (
           <div className="space-y-6">
-            <Sidebar 
-              teacherId={currentTeacherId}
-              teacher={teacher}
-            />
+            <ParentLinkGenerator teacher={teacher} />
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
