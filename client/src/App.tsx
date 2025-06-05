@@ -28,6 +28,15 @@ function Router() {
 
   return (
     <Switch>
+      {/* Public routes - always accessible */}
+      <Route path="/register" component={Register} />
+      <Route path="/simple-registration" component={SimpleRegistration} />
+      <Route path="/simple-teacher-onboarding" component={SimpleTeacherOnboarding} />
+      <Route path="/parent-access" component={ParentAccess} />
+      <Route path="/parent/:linkCode" component={ParentAccess} />
+      <Route path="/p/:linkCode" component={ParentAccess} />
+      
+      {/* Conditional routes based on authentication */}
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
@@ -38,15 +47,10 @@ function Router() {
           <Route path="/" component={TeacherDashboard} />
           <Route path="/teacher-dashboard" component={TeacherDashboard} />
           <Route path="/teacher/:teacherId" component={TeacherDashboard} />
+          <Route path="/teacher-dashboard/:teacherId" component={TeacherDashboard} />
         </>
       )}
-      <Route path="/register" component={Register} />
-      <Route path="/simple-registration" component={SimpleRegistration} />
-      <Route path="/simple-teacher-onboarding" component={SimpleTeacherOnboarding} />
-      <Route path="/teacher-dashboard/:teacherId" component={TeacherDashboard} />
-      <Route path="/parent-access" component={ParentAccess} />
-      <Route path="/parent/:linkCode" component={ParentAccess} />
-      <Route path="/p/:linkCode" component={ParentAccess} />
+      
       <Route component={NotFound} />
     </Switch>
   );

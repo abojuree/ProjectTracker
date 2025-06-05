@@ -23,10 +23,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Simple teacher registration for testing
   app.post('/api/teacher/simple-register', async (req, res) => {
     try {
+      console.log('Simple registration request:', req.body);
       const { name, schoolName, email, driveFolderLink } = req.body;
       
+      console.log('Extracted fields:', { name, schoolName, email, driveFolderLink });
+      
       if (!name || !schoolName || !email) {
-        return res.status(400).json({ message: "Missing required fields" });
+        console.log('Missing fields validation failed:', { name: !!name, schoolName: !!schoolName, email: !!email });
+        return res.status(400).json({ message: "Missing required fields", received: { name: !!name, schoolName: !!schoolName, email: !!email } });
       }
 
       const linkCode = `${name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`;
