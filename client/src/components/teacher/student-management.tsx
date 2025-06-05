@@ -234,9 +234,9 @@ export default function StudentManagement({ teacherId, onStudentSelect }: Studen
                   <p className="text-sm text-muted-foreground mb-4">
                     اختر ملف Excel يحتوي على: اسم الطالب، رقم الهوية، الصف، رقم الفصل، المادة
                   </p>
-                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800">
-                      ⚠️ تنبيه: سيتم مسح جميع بيانات الطلاب القديمة واستبدالها بالبيانات الجديدة من ملف Excel
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      📋 ملاحظة: سيتم إضافة الطلاب الجدد فقط. الطلاب الموجودين مسبقاً سيتم تجاهلهم لتجنب التكرار
                     </p>
                   </div>
                   <input
@@ -279,31 +279,7 @@ export default function StudentManagement({ teacherId, onStudentSelect }: Studen
         </CardHeader>
         <CardContent>
           {students && students.length > 0 ? (
-            <div className="space-y-6">
-              {/* Delete Actions Component */}
-              <StudentDeleteActions students={students} teacherId={teacherId} />
-              
-              {/* Students List */}
-              <div className="space-y-2">
-                {students.map((student: Student) => (
-                  <div 
-                    key={student.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                    onClick={() => onStudentSelect?.(student.civilId)}
-                  >
-                    <div>
-                      <p className="font-medium">{student.studentName}</p>
-                      <p className="text-sm text-gray-500">
-                        {student.grade} - فصل {student.classNumber} - {student.subject}
-                      </p>
-                    </div>
-                    <div className="text-sm text-gray-400">
-                      {student.civilId}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <StudentDeleteActions students={students} teacherId={teacherId} />
           ) : (
             <div className="text-center py-8 text-gray-500">
               لا توجد بيانات طلاب. قم بإضافة طلاب جدد أو رفع ملف Excel.

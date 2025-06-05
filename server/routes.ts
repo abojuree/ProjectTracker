@@ -427,6 +427,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete single student
+  app.delete("/api/teacher/:teacherId/students/:studentId", async (req, res) => {
+    try {
+      const studentId = parseInt(req.params.studentId);
+      await storage.deleteStudent(studentId);
+      res.json({ message: "تم حذف الطالب بنجاح" });
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      res.status(500).json({ message: "Failed to delete student" });
+    }
+  });
+
+  // Delete all students for a teacher
+  app.delete("/api/teacher/:teacherId/students", async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      const students = await storage.getStudentsByTeacher(teacherId);
+      
+      for (const student of students) {
+        await storage.deleteStudent(student.id);
+      }
+      
+      res.json({ 
+        message: `تم حذف ${students.length} طالب بنجاح`,
+        deleted: students.length
+      });
+    } catch (error) {
+      console.error("Error deleting all students:", error);
+      res.status(500).json({ message: "Failed to delete students" });
+    }
+  });
+
   app.post("/api/teacher/:teacherId/students/upload-excel", upload.single('file'), async (req, res) => {
     try {
       const teacherId = parseInt(req.params.teacherId);
@@ -435,33 +467,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      // Clear old students data and Google Drive folders before uploading new data
-      console.log(`Clearing old students data for teacher ${teacherId}...`);
-      const oldStudents = await storage.getStudentsByTeacher(teacherId);
-      
-      // Get teacher info for Google Drive operations
-      const teacher = await storage.getTeacher(teacherId);
-      
-      // Delete old Google Drive folders if they exist
-      if (teacher && teacher.driveFolderId && oldStudents.length > 0) {
-        console.log(`Deleting ${oldStudents.length} old Google Drive folders...`);
-        for (const student of oldStudents) {
-          if (student.driveFolderId) {
-            try {
-              await googleDriveService.deleteFolder(student.driveFolderId);
-              console.log(`✅ Deleted Google Drive folder for Civil ID: ${student.civilId}`);
-            } catch (error) {
-              console.warn(`⚠️ Failed to delete Google Drive folder for Civil ID: ${student.civilId}:`, error);
-            }
-          }
-        }
-      }
-      
-      // Delete student records from database
-      for (const student of oldStudents) {
-        await storage.deleteStudent(student.id);
-      }
-      console.log(`Cleared ${oldStudents.length} old student records.`);
+      // Check for existing students to prevent duplicates
+      const existingStudents = await storage.getStudentsByTeacher(teacherId);
 
       // Parse Excel file
       const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
@@ -472,6 +479,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate and map Excel data
       const validStudentsData: any[] = [];
       let skippedRows = 0;
+      let duplicateRows = 0;
+      
+      // Get existing civil IDs to prevent duplicates
+      const existingCivilIds = new Set(existingStudents.map(s => s.civilId));
       
       for (let index = 0; index < data.length; index++) {
         const row = data[index] as Record<string, any>;
@@ -505,6 +516,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.warn(`تجاهل الصف ${index + 2}: رقم هوية غير صحيح "${civilIdStr}"`);
           continue;
         }
+
+        // Check for duplicates
+        if (existingCivilIds.has(civilIdStr)) {
+          duplicateRows++;
+          console.warn(`تجاهل الصف ${index + 2}: الطالب موجود مسبقاً (${civilIdStr})`);
+          continue;
+        }
+
+        // Add to set to prevent duplicates within the same Excel file
+        existingCivilIds.add(civilIdStr);
 
         validStudentsData.push({
           civilId: civilIdStr,
@@ -544,8 +565,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `تم رفع ${validStudentsData.length} طالب بنجاح`,
         added: validStudentsData.length,
         skipped: skippedRows,
+        duplicates: duplicateRows,
         total: data.length,
-        details: skippedRows > 0 ? `تم تجاهل ${skippedRows} صف بسبب بيانات غير صحيحة أو ناقصة` : undefined
+        details: `${skippedRows > 0 ? `تم تجاهل ${skippedRows} صف بسبب بيانات غير صحيحة. ` : ''}${duplicateRows > 0 ? `تم تجاهل ${duplicateRows} طالب مكرر.` : ''}`
       });
     } catch (error) {
       console.error("Error uploading Excel:", error);
