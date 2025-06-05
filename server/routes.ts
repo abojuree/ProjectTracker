@@ -322,9 +322,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
           
-          // For simple approach: just mark as created and generate logical structure
+          // Try Service Account first for real folder creation
+          const { googleDriveService } = await import('./googleDriveService');
+          
+          if (googleDriveService.isConfigured()) {
+            try {
+              const result = await googleDriveService.createStudentFolder(teacher, student);
+              
+              if (result.success) {
+                await storage.updateStudent(student.id, {
+                  folderCreated: true
+                });
+                created++;
+                console.log(`Successfully created real Google Drive folder for student: ${student.studentName} with ID: ${result.folderId}`);
+                continue;
+              } else {
+                console.error(`Service Account failed for student ${student.studentName}: ${result.error}`);
+              }
+            } catch (serviceError) {
+              console.error(`Service Account error for student ${student.studentName}:`, serviceError);
+            }
+          }
+          
+          // Fallback to OAuth if Service Account fails
           if (teacher.accessToken) {
-            // Try Google Drive API if access token exists
             try {
               const { googleDriveAPI } = await import('./googleDriveApi');
               const result = await googleDriveAPI.createStudentFolderStructure(student, teacher, teacher.accessToken);
@@ -334,20 +355,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   folderCreated: true
                 });
                 created++;
-                console.log(`Successfully created Google Drive folder for student: ${student.studentName}`);
+                console.log(`Successfully created OAuth Google Drive folder for student: ${student.studentName}`);
                 continue;
               }
             } catch (apiError) {
-              console.log(`Teacher has no access token, cannot create Google Drive folders`);
+              console.log(`OAuth also failed for student: ${student.studentName}`);
             }
           }
           
-          // Simple approach: mark as logically created
+          // Last resort: mark as logically created
           await storage.updateStudent(student.id, {
             folderCreated: true
           });
           created++;
-          console.log(`Created Google Drive folder for student: ${student.studentName}`);
+          console.log(`Logically marked folder as created for student: ${student.studentName}`);
         } catch (error) {
           failed++;
           details.push(`فشل في تسجيل مجلد للطالب: ${student.studentName}`);
