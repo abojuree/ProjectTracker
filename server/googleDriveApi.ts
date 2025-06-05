@@ -10,7 +10,7 @@ export class GoogleDriveAPI {
     const auth = new google.auth.OAuth2(
       process.env.GOOGLE_DRIVE_CLIENT_ID,
       process.env.GOOGLE_DRIVE_CLIENT_SECRET,
-      `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/api/google-callback`
+      `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/api/google-callback`
     );
 
     auth.setCredentials({ access_token: accessToken });
@@ -36,11 +36,11 @@ export class GoogleDriveAPI {
       };
 
       const response = await drive.files.create({
-        resource: folderMetadata,
+        requestBody: folderMetadata,
         fields: 'id'
       });
 
-      return response.data.id;
+      return response.data?.id || null;
     } catch (error) {
       console.error('Error creating folder:', error);
       return null;
