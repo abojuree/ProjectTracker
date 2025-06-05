@@ -20,6 +20,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize default captcha questions
   await initializeCaptchaQuestions();
 
+  // Simple teacher registration for testing
+  app.post('/api/teacher/simple-register', async (req, res) => {
+    try {
+      const { name, schoolName } = req.body;
+      
+      if (!name || !schoolName) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const linkCode = `${name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`;
+      const teacher = await storage.createTeacher({
+        name: name.trim(),
+        schoolName: schoolName.trim(),
+        email: `${name.replace(/\s+/g, '.')}@${schoolName.replace(/\s+/g, '.')}.local`,
+        linkCode,
+        googleId: null,
+        accessToken: null,
+        refreshToken: null,
+        driveFolderId: null,
+        profileImageUrl: null,
+        isActive: true
+      });
+
+      res.json(teacher);
+    } catch (error) {
+      console.error('Error creating teacher:', error);
+      res.status(500).json({ message: 'Failed to create teacher' });
+    }
+  });
+
   // Teacher routes
   app.get("/api/teacher/:teacherId", async (req, res) => {
     try {

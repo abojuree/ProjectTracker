@@ -32,19 +32,15 @@ export default function TeacherOnboarding() {
         return;
       }
 
-      // Create teacher with local storage
-      const teacherData = {
-        id: Date.now(),
+      // Register teacher with backend
+      const response = await apiRequest('POST', '/api/teacher/simple-register', {
         name: teacherName.trim(),
-        schoolName: schoolName.trim(),
-        email: `${teacherName.replace(/\s+/g, '.')}@${schoolName.replace(/\s+/g, '.')}.local`,
-        linkCode: `${teacherName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`,
-        googleId: null,
-        accessToken: null,
-        isActive: true
-      };
+        schoolName: schoolName.trim()
+      });
 
-      // Store teacher data locally
+      const teacherData = await response.json();
+      
+      // Store teacher data
       localStorage.setItem('teacherId', teacherData.id.toString());
       localStorage.setItem('teacherData', JSON.stringify(teacherData));
       
