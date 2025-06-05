@@ -169,8 +169,13 @@ export default function SimpleRegistration() {
               dir="ltr"
             />
             <p className="text-xs text-muted-foreground">
-              يمكنك إنشاء مجلد في Google Drive ونسخ رابطه هنا
+              يمكنك إنشاء مجلد في Google Drive ونسخ رابطه هنا، أو إضافته لاحقاً من لوحة التحكم
             </p>
+            {teacherData.driveFolderLink && (
+              <p className="text-xs text-green-600">
+                ✓ سيتم حفظ هذا الرابط مع بيانات حسابك
+              </p>
+            )}
           </div>
 
           <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">

@@ -164,9 +164,17 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">مجلد Google Drive المربوط:</p>
-                  <p className="text-sm text-muted-foreground">
-                    {teacher.driveFolderId}
+                  <p className="text-sm text-muted-foreground break-all">
+                    https://drive.google.com/drive/folders/{teacher.driveFolderId}
                   </p>
+                  <a 
+                    href={`https://drive.google.com/drive/folders/${teacher.driveFolderId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    فتح المجلد في تبويب جديد
+                  </a>
                 </div>
                 <Button
                   variant="outline"
