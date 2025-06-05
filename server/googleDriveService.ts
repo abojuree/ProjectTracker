@@ -38,7 +38,7 @@ export class GoogleDriveService {
   }
 
   /**
-   * Create a folder in the teacher's shared Google Drive folder
+   * Create a folder using Service Account in a shared location
    */
   async createStudentFolder(
     teacher: Teacher, 
@@ -51,11 +51,11 @@ export class GoogleDriveService {
 
       const folderName = `${student.studentName} - ${student.civilId}`;
       
-      // Create the main student folder
+      // Create folder in Service Account's drive first, then share with teacher
       const folderMetadata = {
         name: folderName,
-        mimeType: 'application/vnd.google-apps.folder',
-        parents: teacher.driveFolderId ? [teacher.driveFolderId] : undefined
+        mimeType: 'application/vnd.google-apps.folder'
+        // Don't specify parent - create in Service Account root first
       };
 
       const folderResponse = await this.drive.files.create({
@@ -85,11 +85,11 @@ export class GoogleDriveService {
         });
       }
 
-      // Set folder permissions to be viewable by anyone with link
+      // Set folder permissions to be viewable/editable by anyone with link
       await this.drive.permissions.create({
         fileId: folderId,
         requestBody: {
-          role: 'reader',
+          role: 'writer',
           type: 'anyone'
         }
       });
@@ -101,10 +101,10 @@ export class GoogleDriveService {
       };
 
     } catch (error) {
-      console.error('Error creating student folder:', error);
+      console.error('Error creating student folder with Service Account:', error);
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Service Account access error'
       };
     }
   }
