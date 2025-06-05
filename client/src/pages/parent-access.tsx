@@ -87,22 +87,27 @@ export default function ParentAccess() {
         throw new Error('إجابة التحقق غير صحيحة');
       }
       
-      const response: any = await apiRequest('POST', '/api/verify-student', {
+      // Simple verification - get teacher info first
+      const response: any = await apiRequest('POST', '/api/verify-access-simple', {
         linkCode,
-        civilId: civilId.trim(),
-        captchaId: captchaQuestion.id,
-        captchaAnswer: captchaAnswer.trim()
+        civilId: civilId.trim()
       });
       
       return response;
     },
     onSuccess: (data) => {
-      if (data.student) {
-        setStudentData(data);
+      if (data.success) {
+        // Redirect to Google Drive folder directly
         toast({
           title: "تم التحقق بنجاح",
-          description: `مرحباً بك، يمكنك الآن الاطلاع على ملفات ${data.student.name}`,
+          description: "جاري توجيهك لمجلد الملفات...",
         });
+        
+        setTimeout(() => {
+          if (data.driveUrl) {
+            window.open(data.driveUrl, '_blank');
+          }
+        }, 1500);
       }
     },
     onError: (error: any) => {

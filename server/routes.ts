@@ -676,6 +676,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/verify-access-simple", async (req, res) => {
+    try {
+      const { civilId, linkCode } = req.body;
+
+      if (!civilId || !linkCode) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Verify teacher link
+      const teacher = await storage.getTeacherByLinkCode(linkCode);
+      if (!teacher) {
+        return res.status(404).json({ message: "Invalid access link" });
+      }
+
+      // Check if student exists for this teacher
+      const student = await storage.getStudentByCivilId(civilId);
+      if (!student || student.teacherId !== teacher.id) {
+        return res.status(404).json({ message: "الطالب غير موجود في هذا الفصل" });
+      }
+
+      // Generate Google Drive URL
+      let driveUrl = '';
+      if (teacher.driveFolderId) {
+        driveUrl = `https://drive.google.com/drive/folders/${teacher.driveFolderId}`;
+      }
+
+      res.json({
+        success: true,
+        studentName: student.studentName,
+        teacherName: teacher.name,
+        driveUrl,
+        message: `مرحباً بك، يمكنك الوصول لملفات ${student.studentName}`
+      });
+    } catch (error) {
+      console.error("Error in simple verification:", error);
+      res.status(500).json({ message: "Failed to verify access" });
+    }
+  });
+
   app.post("/api/verify-student", async (req, res) => {
     try {
       const { civilId, captchaId, captchaAnswer, linkCode } = req.body;
