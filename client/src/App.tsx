@@ -7,6 +7,8 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import TeacherDashboard from "@/pages/teacher-dashboard";
 import ParentAccess from "@/pages/parent-access";
+import SimpleTeacherOnboarding from "@/pages/simple-teacher-onboarding";
+import Register from "@/pages/register";
 import { useTeacherAuth } from "@/hooks/useTeacherAuth";
 
 function Router() {
@@ -37,6 +39,8 @@ function Router() {
           <Route path="/teacher/:teacherId" component={TeacherDashboard} />
         </>
       )}
+      <Route path="/simple-teacher-onboarding" component={SimpleTeacherOnboarding} />
+      <Route path="/teacher-dashboard/:teacherId" component={TeacherDashboard} />
       <Route path="/parent-access" component={ParentAccess} />
       <Route path="/parent/:linkCode" component={ParentAccess} />
       <Route path="/p/:linkCode" component={ParentAccess} />
