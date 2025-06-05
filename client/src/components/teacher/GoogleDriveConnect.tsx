@@ -50,13 +50,18 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
       return response.json();
     },
     onSuccess: (data) => {
-      // Redirect to Google OAuth
-      window.location.href = data.authUrl;
+      if (data.authUrl) {
+        // Redirect to Google OAuth
+        window.location.href = data.authUrl;
+      } else {
+        throw new Error('No auth URL received');
+      }
     },
     onError: (error) => {
+      console.error('Google connection error:', error);
       toast({
         title: "خطأ في الربط",
-        description: "فشل في الاتصال بـ Google Drive",
+        description: "فشل في الاتصال بـ Google Drive. تأكد من إعداد Google Client ID و Secret",
         variant: "destructive",
       });
       setIsConnecting(false);

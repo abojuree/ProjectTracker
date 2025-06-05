@@ -67,6 +67,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Google OAuth for Drive access
   app.get('/api/teacher/:teacherId/connect-google', async (req, res) => {
     try {
+      console.log('Generating Google auth URL for teacher:', req.params.teacherId);
+      console.log('Environment check - Client ID exists:', !!process.env.GOOGLE_CLIENT_ID);
+      console.log('Environment check - Client Secret exists:', !!process.env.GOOGLE_CLIENT_SECRET);
+      
       const { google } = await import('googleapis');
       
       const oauth2Client = new google.auth.OAuth2(
@@ -88,10 +92,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         state: req.params.teacherId // Pass teacher ID in state
       });
 
+      console.log('Generated auth URL:', authUrl);
       res.json({ authUrl });
     } catch (error) {
       console.error('Error generating Google auth URL:', error);
-      res.status(500).json({ message: 'Failed to generate auth URL' });
+      res.status(500).json({ 
+        message: 'Failed to generate auth URL', 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
