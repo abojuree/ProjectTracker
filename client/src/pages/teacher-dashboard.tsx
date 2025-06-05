@@ -5,8 +5,10 @@ import StudentManagement from "@/components/teacher/student-management";
 import FileManagement from "@/components/teacher/file-management";
 import ParentLinkGenerator from "@/components/teacher/parent-link-generator";
 import GoogleDriveConnect from "@/components/teacher/GoogleDriveConnect";
+import FolderInstructions from "@/components/teacher/FolderInstructions";
 import { useTeacher } from "@/hooks/use-teacher";
 import { useTeacherAuth } from "@/hooks/useTeacherAuth";
+import { useQuery } from "@tanstack/react-query";
 
 export default function TeacherDashboard() {
   const { teacherId } = useParams();
@@ -108,7 +110,10 @@ export default function TeacherDashboard() {
           <div className="space-y-6">
             <StatsOverview teacherId={currentTeacherId} />
             {teacher && (
-              <GoogleDriveConnect teacher={teacher} teacherId={currentTeacherId} />
+              <>
+                <GoogleDriveConnect teacher={teacher} teacherId={currentTeacherId} />
+                <FolderInstructions teacher={teacher} studentCount={83} />
+              </>
             )}
           </div>
         )}

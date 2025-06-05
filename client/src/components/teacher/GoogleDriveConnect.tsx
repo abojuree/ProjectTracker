@@ -94,7 +94,9 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                لإنشاء مجلدات الطلاب تلقائياً في Google Drive، يجب ربط حسابك أولاً.
+                <strong>مشكلة مؤقتة في OAuth:</strong> يظهر رفض الاتصال مع Google. 
+                <br />
+                <strong>الحل:</strong> في Google Cloud Console → OAuth consent screen → انقر "PUBLISH APP" لتغيير الوضع من Testing إلى Production
               </AlertDescription>
             </Alert>
             
