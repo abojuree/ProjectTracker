@@ -42,6 +42,7 @@ export const students = pgTable("students", {
   grade: varchar("grade", { length: 100 }).notNull(),
   classNumber: integer("class_number").notNull(),
   subject: varchar("subject", { length: 100 }).notNull(),
+  academicYear: varchar("academic_year", { length: 20 }).notNull().default("2024-2025"),
   teacherId: integer("teacher_id").notNull(),
   folderCreated: boolean("folder_created").default(false),
   createdDate: timestamp("created_date").defaultNow(),

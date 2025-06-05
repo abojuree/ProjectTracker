@@ -2,10 +2,12 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Upload, FileImage, X } from "lucide-react";
+import { Camera, Upload, FileImage, X, Search, Filter } from "lucide-react";
 import type { Student } from "@shared/schema";
 
 interface CameraUploadProps {
@@ -18,6 +20,10 @@ export default function CameraUpload({ teacherId }: CameraUploadProps) {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedGrade, setSelectedGrade] = useState<string>("");
+  const [selectedClass, setSelectedClass] = useState<string>("");
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>("");
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,6 +35,28 @@ export default function CameraUpload({ teacherId }: CameraUploadProps) {
   // Fetch students list
   const { data: students = [] } = useQuery({
     queryKey: [`/api/teacher/${teacherId}/students`],
+  });
+
+  // Get unique values for filtering
+  const grades = Array.from(new Set((students as Student[]).map(s => s.grade))).filter(Boolean);
+  const classes = Array.from(new Set((students as Student[]).map(s => s.classNumber))).filter(Boolean);
+  const academicYears = Array.from(new Set((students as Student[]).map((s: any) => s.academicYear))).filter(Boolean);
+  
+  // Get the latest academic year as default
+  const latestAcademicYear = academicYears.sort().reverse()[0] || "2024-2025";
+  
+  // Set default academic year if not selected
+  const currentAcademicYear = selectedAcademicYear || latestAcademicYear;
+
+  // Filter students based on search criteria
+  const filteredStudents = (students as Student[]).filter((student: any) => {
+    const matchesSearch = student.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         student.civilId.includes(searchTerm);
+    const matchesGrade = !selectedGrade || selectedGrade === "all" || student.grade === selectedGrade;
+    const matchesClass = !selectedClass || selectedClass === "all" || student.classNumber.toString() === selectedClass;
+    const matchesYear = !selectedAcademicYear || selectedAcademicYear === "all" || student.academicYear === selectedAcademicYear;
+    
+    return matchesSearch && matchesGrade && matchesClass && matchesYear;
   });
 
   // Start camera stream
@@ -236,11 +264,11 @@ export default function CameraUpload({ teacherId }: CameraUploadProps) {
 
       {/* Image Preview Dialog */}
       <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>معاينة الصورة وتحديد الطالب</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-6">
             {capturedImage && (
               <div className="relative">
                 <img 
@@ -251,23 +279,103 @@ export default function CameraUpload({ teacherId }: CameraUploadProps) {
               </div>
             )}
             
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                اختر الطالب لحفظ الصورة في ملفه:
-              </label>
-              <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر الطالب" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(students as Student[]).map((student) => (
-                    <SelectItem key={student.id} value={student.id.toString()}>
-                      {student.studentName} - {student.civilId}
-                    </SelectItem>
+            {/* Search and Filter Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Search className="w-5 h-5" />
+                  البحث عن الطالب
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Search Input */}
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder="ابحث بالاسم أو رقم الهوية..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pr-10"
+                  />
+                </div>
+
+                {/* Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر الصف" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الصفوف</SelectItem>
+                      {grades.map(grade => (
+                        <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={selectedClass} onValueChange={setSelectedClass}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر الفصل" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الفصول</SelectItem>
+                      {classes.map(classNum => (
+                        <SelectItem key={classNum} value={classNum.toString()}>{classNum}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Results Summary */}
+                <div className="text-sm text-muted-foreground">
+                  عدد النتائج: {filteredStudents.length} طالب
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Students List */}
+            <Card>
+              <CardHeader>
+                <CardTitle>اختر الطالب لحفظ الصورة في ملفه</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                  {filteredStudents.map((student: Student) => (
+                    <div
+                      key={student.id}
+                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                        selectedStudentId === student.id.toString()
+                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setSelectedStudentId(student.id.toString())}
+                    >
+                      <div className="font-medium text-sm">{student.studentName}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        الهوية: {student.civilId}
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        {student.grade && (
+                          <Badge variant="secondary" className="text-xs">
+                            {student.grade}
+                          </Badge>
+                        )}
+                        {student.classNumber && (
+                          <Badge variant="outline" className="text-xs">
+                            فصل {student.classNumber}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
+                  {filteredStudents.length === 0 && (
+                    <div className="col-span-full text-center py-8 text-muted-foreground">
+                      لا توجد نتائج للبحث المحدد
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             <div className="flex gap-2 justify-end">
               <Button
@@ -275,6 +383,9 @@ export default function CameraUpload({ teacherId }: CameraUploadProps) {
                 onClick={() => {
                   setCapturedImage(null);
                   setSelectedStudentId("");
+                  setSearchTerm("");
+                  setSelectedGrade("");
+                  setSelectedClass("");
                   setIsImagePreviewOpen(false);
                 }}
               >
