@@ -35,6 +35,7 @@ function Router() {
       <Route path="/parent-access" component={ParentAccess} />
       <Route path="/parent/:linkCode" component={ParentAccess} />
       <Route path="/p/:linkCode" component={ParentAccess} />
+      <Route path="/teacher-dashboard/:teacherId" component={TeacherDashboard} />
       
       {/* Conditional routes based on authentication */}
       {!isAuthenticated ? (
