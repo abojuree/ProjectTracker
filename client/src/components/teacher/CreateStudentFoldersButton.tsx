@@ -37,14 +37,22 @@ export default function CreateStudentFoldersButton({ teacher, teacherId }: Creat
       setProgress(0);
       setResult(null);
 
-      // Disable progress simulation - will get real progress from server
-      setProgress(5);
+      // Improved progress tracking - faster updates to match server progress
+      let progressUpdates = 0;
+      const progressInterval = setInterval(() => {
+        progressUpdates += Math.floor(Math.random() * 4) + 2; // 2-5% increment
+        if (progressUpdates <= 95) {
+          setProgress(progressUpdates);
+        }
+      }, 800); // Update every 800ms for smoother progress
 
       try {
         const response = await apiRequest('POST', `/api/teacher/${teacherId}/create-student-folders`);
+        clearInterval(progressInterval);
         setProgress(100);
         return response.json();
       } catch (error) {
+        clearInterval(progressInterval);
         throw error;
       }
     },

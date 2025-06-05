@@ -234,6 +234,11 @@ export default function StudentManagement({ teacherId, onStudentSelect }: Studen
                   <p className="text-sm text-muted-foreground mb-4">
                     اختر ملف Excel يحتوي على: اسم الطالب، رقم الهوية، الصف، رقم الفصل، المادة
                   </p>
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      ⚠️ تنبيه: سيتم مسح جميع بيانات الطلاب القديمة واستبدالها بالبيانات الجديدة من ملف Excel
+                    </p>
+                  </div>
                   <input
                     type="file"
                     accept=".xlsx,.xls"

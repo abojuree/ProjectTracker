@@ -302,10 +302,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Google Drive folder not configured" });
       }
 
-      // Get all students for this teacher
-      const students = await storage.getStudentsByTeacher(teacherId);
+      // Get only active students for this teacher who haven't had folders created yet
+      const allStudents = await storage.getStudentsByTeacher(teacherId);
+      const students = allStudents.filter(student => student.isActive && !student.folderCreated);
+      
       if (students.length === 0) {
-        return res.status(400).json({ message: "No students found" });
+        return res.status(400).json({ message: "No new students found or all folders already created" });
       }
 
       let created = 0;
@@ -432,6 +434,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
+
+      // Clear old students data before uploading new data
+      console.log(`Clearing old students data for teacher ${teacherId}...`);
+      const oldStudents = await storage.getStudentsByTeacher(teacherId);
+      for (const student of oldStudents) {
+        await storage.deleteStudent(student.id);
+      }
+      console.log(`Cleared ${oldStudents.length} old student records.`);
 
       // Parse Excel file
       const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
