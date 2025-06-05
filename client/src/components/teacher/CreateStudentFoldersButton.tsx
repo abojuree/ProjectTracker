@@ -37,22 +37,14 @@ export default function CreateStudentFoldersButton({ teacher, teacherId }: Creat
       setProgress(0);
       setResult(null);
 
-      // Start progress simulation while waiting for response
-      let currentProgress = 0;
-      const progressInterval = setInterval(() => {
-        currentProgress += 5;
-        if (currentProgress <= 95) {
-          setProgress(currentProgress);
-        }
-      }, 500);
+      // Disable progress simulation - will get real progress from server
+      setProgress(5);
 
       try {
         const response = await apiRequest('POST', `/api/teacher/${teacherId}/create-student-folders`);
-        clearInterval(progressInterval);
         setProgress(100);
         return response.json();
       } catch (error) {
-        clearInterval(progressInterval);
         throw error;
       }
     },

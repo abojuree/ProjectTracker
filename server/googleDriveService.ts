@@ -71,7 +71,7 @@ export class GoogleDriveService {
         return { success: false, error: 'Google Drive Service not initialized' };
       }
 
-      const folderName = `${student.studentName} - ${student.civilId}`;
+      const folderName = student.civilId;
       
       // Create folder inside teacher's shared Google Drive folder
       const folderMetadata = {

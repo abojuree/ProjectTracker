@@ -315,51 +315,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Starting folder creation for ${students.length} students...`);
       
-      // Process students sequentially to avoid overwhelming Google Drive API
-      for (let i = 0; i < students.length; i++) {
-        const student = students[i];
-        const progress = Math.round(((i + 1) / students.length) * 100);
-        console.log(`Progress: ${progress}% - Processing student ${i + 1}/${students.length}: ${student.studentName}`);
-        
-        try {
-          // Skip if folder already created
-          if (student.folderCreated) {
-            skipped++;
-            console.log(`⏭️ Skipped ${student.studentName} - folder already exists`);
-            continue;
-          }
+      // Process students in batches for better performance
+      const batchSize = 3;
+      for (let i = 0; i < students.length; i += batchSize) {
+        const batch = students.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (student, index) => {
+          const studentIndex = i + index + 1;
+          const progress = Math.round((studentIndex / students.length) * 100);
+          console.log(`Progress: ${progress}% - Processing student ${studentIndex}/${students.length}: Civil ID ${student.civilId}`);
           
-          // Create folder using Service Account in teacher's shared Google Drive folder
-          if (teacher.driveFolderId) {
-            try {
-              const { googleDriveService } = await import('./googleDriveService');
-              const result = await googleDriveService.createStudentFolder(teacher, student);
-              
-              if (result.success) {
-                await storage.updateStudent(student.id, {
-                  folderCreated: true
-                });
-                created++;
-                console.log(`✅ Created Google Drive folder for student: ${student.studentName} with ID: ${result.folderId}`);
-                continue;
-              } else {
-                console.error(`❌ Failed to create folder for ${student.studentName}: ${result.error}`);
-              }
-            } catch (error) {
-              console.error(`❌ Error creating folder for ${student.studentName}:`, error);
+          try {
+            // Skip if folder already created
+            if (student.folderCreated) {
+              skipped++;
+              console.log(`⏭️ Skipped Civil ID ${student.civilId} - folder already exists`);
+              return;
             }
+            
+            // Create folder using Service Account in teacher's shared Google Drive folder
+            if (teacher.driveFolderId) {
+              try {
+                const { googleDriveService } = await import('./googleDriveService');
+                const result = await googleDriveService.createStudentFolder(teacher, student);
+                
+                if (result.success) {
+                  await storage.updateStudent(student.id, {
+                    folderCreated: true
+                  });
+                  created++;
+                  console.log(`✅ Created folder for Civil ID: ${student.civilId} with Google Drive ID: ${result.folderId}`);
+                  return;
+                } else {
+                  console.error(`❌ Failed to create folder for Civil ID ${student.civilId}: ${result.error}`);
+                }
+              } catch (error) {
+                console.error(`❌ Error creating folder for Civil ID ${student.civilId}:`, error);
+              }
+            }
+            
+            // Mark as logically created if no Google Drive access
+            await storage.updateStudent(student.id, {
+              folderCreated: true
+            });
+            created++;
+            console.log(`Marked folder as created for Civil ID: ${student.civilId}`);
+          } catch (error) {
+            failed++;
+            details.push(`فشل في تسجيل مجلد للطالب برقم الهوية: ${student.civilId}`);
+            console.error('Error creating folder entry:', error);
           }
-          
-          // Mark as logically created if no Google Drive access
-          await storage.updateStudent(student.id, {
-            folderCreated: true
-          });
-          created++;
-          console.log(`Marked folder as created for student: ${student.studentName}`);
-        } catch (error) {
-          failed++;
-          details.push(`فشل في تسجيل مجلد للطالب: ${student.studentName}`);
-          console.error('Error creating folder entry:', error);
+        });
+        
+        // Wait for current batch to complete before processing next batch
+        await Promise.all(batchPromises);
+        
+        // Small delay between batches to avoid overwhelming Google Drive API
+        if (i + batchSize < students.length) {
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
 
