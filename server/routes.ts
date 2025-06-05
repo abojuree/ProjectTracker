@@ -329,18 +329,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
           
-          // Create folder using teacher's Google Drive access
-          if (teacher.accessToken && teacher.driveFolderId) {
+          // Create folder using Service Account in teacher's shared Google Drive folder
+          if (teacher.driveFolderId) {
             try {
-              const { googleDriveAPI } = await import('./googleDriveApi');
-              const result = await googleDriveAPI.createStudentFolderStructure(student, teacher, teacher.accessToken);
+              const { googleDriveService } = await import('./googleDriveService');
+              const result = await googleDriveService.createStudentFolder(teacher, student);
               
               if (result.success) {
                 await storage.updateStudent(student.id, {
                   folderCreated: true
                 });
                 created++;
-                console.log(`✅ Created Google Drive folder for student: ${student.studentName} in teacher's Drive`);
+                console.log(`✅ Created Google Drive folder for student: ${student.studentName} with ID: ${result.folderId}`);
                 continue;
               } else {
                 console.error(`❌ Failed to create folder for ${student.studentName}: ${result.error}`);
