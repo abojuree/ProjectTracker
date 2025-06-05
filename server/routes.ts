@@ -76,7 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        `https://workspace.abojuree1.repl.co/api/google-callback`
+        `https://project-tracker-abojuree1.replit.app/api/google-callback`
       );
 
       const scopes = [
@@ -116,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        `https://workspace.abojuree1.repl.co/api/google-callback`
+        `https://project-tracker-abojuree1.replit.app/api/google-callback`
       );
 
       const { tokens } = await oauth2Client.getToken(code as string);
