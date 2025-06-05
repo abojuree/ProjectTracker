@@ -148,6 +148,12 @@ export default function TeacherDashboard() {
           </div>
         )}
 
+        {activeTab === 'upload-files' && (
+          <div className="space-y-6">
+            <FileUpload teacherId={currentTeacherId} />
+          </div>
+        )}
+
         {activeTab === 'parent-links' && teacher && (
           <div className="space-y-6">
             <ParentLinkGenerator teacher={teacher} />
