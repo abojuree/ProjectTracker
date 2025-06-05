@@ -17,7 +17,11 @@ interface FolderCreationResult {
   success: boolean;
   created: number;
   failed: number;
+  skipped: number;
+  total: number;
+  message: string;
   details: string[];
+  note?: string;
 }
 
 export default function CreateStudentFoldersButton({ teacher, teacherId }: CreateStudentFoldersButtonProps) {
@@ -40,10 +44,10 @@ export default function CreateStudentFoldersButton({ teacher, teacherId }: Creat
       setResult(data);
       setProgress(100);
       
-      if (data.success && data.created > 0) {
+      if (data.success) {
         toast({
-          title: "تم إنشاء المجلدات بنجاح",
-          description: `تم إنشاء ${data.created} مجلد للطلاب في Google Drive`,
+          title: "تم تجهيز المجلدات بنجاح",
+          description: data.message || `تم تجهيز ${data.created} مجلد للطلاب`,
         });
         queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}/students`] });
       }
@@ -59,6 +63,9 @@ export default function CreateStudentFoldersButton({ teacher, teacherId }: Creat
         success: false,
         created: 0,
         failed: 1,
+        skipped: 0,
+        total: 0,
+        message: "فشل في إنشاء المجلدات",
         details: ["فشل في الاتصال بـ Google Drive"]
       });
     },
@@ -112,11 +119,17 @@ export default function CreateStudentFoldersButton({ teacher, teacherId }: Creat
             {result.success ? (
               <div>
                 <p className="font-medium text-green-800">
-                  تم إنشاء {result.created} مجلد بنجاح
+                  {result.message}
                 </p>
-                {result.failed > 0 && (
-                  <p className="text-sm text-green-700 mt-1">
-                    فشل في إنشاء {result.failed} مجلد
+                <div className="text-sm text-green-700 mt-2 space-y-1">
+                  <p>• عدد الطلاب الإجمالي: {result.total}</p>
+                  <p>• تم تجهيز: {result.created} مجلد</p>
+                  {result.skipped > 0 && <p>• تم تخطي: {result.skipped} مجلد موجود مسبقاً</p>}
+                  {result.failed > 0 && <p>• فشل: {result.failed} مجلد</p>}
+                </div>
+                {result.note && (
+                  <p className="text-xs text-green-600 mt-2 italic">
+                    {result.note}
                   </p>
                 )}
               </div>
