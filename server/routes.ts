@@ -72,7 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        `${req.protocol}://${req.get('host')}/api/teacher/${req.params.teacherId}/google-callback`
+        `https://workspace.abojuree1.repl.co/api/google-callback`
       );
 
       const scopes = [
@@ -84,7 +84,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: scopes,
-        prompt: 'consent'
+        prompt: 'consent',
+        state: req.params.teacherId // Pass teacher ID in state
       });
 
       res.json({ authUrl });
@@ -94,20 +95,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/teacher/:teacherId/google-callback', async (req, res) => {
+  app.get('/api/google-callback', async (req, res) => {
     try {
       const { google } = await import('googleapis');
-      const { code } = req.query;
-      const teacherId = parseInt(req.params.teacherId);
+      const { code, state } = req.query;
+      const teacherId = parseInt(state as string);
 
-      if (!code) {
-        return res.status(400).send('Authorization code missing');
+      if (!code || !state) {
+        return res.status(400).send('Authorization code or state missing');
       }
 
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        `${req.protocol}://${req.get('host')}/api/teacher/${teacherId}/google-callback`
+        `https://workspace.abojuree1.repl.co/api/google-callback`
       );
 
       const { tokens } = await oauth2Client.getToken(code as string);
@@ -122,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.redirect(`/teacher-dashboard/${teacherId}?google_connected=true`);
     } catch (error) {
       console.error('Error handling Google callback:', error);
-      res.redirect(`/teacher-dashboard/${req.params.teacherId}?error=google_auth_failed`);
+      res.redirect(`/teacher-dashboard/8?error=google_auth_failed`);
     }
   });
 
