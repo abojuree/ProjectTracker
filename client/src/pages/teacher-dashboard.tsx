@@ -6,6 +6,7 @@ import FileManagement from "@/components/teacher/file-management";
 import ParentLinkGenerator from "@/components/teacher/parent-link-generator";
 import GoogleDriveConnect from "@/components/teacher/GoogleDriveConnect";
 import FolderInstructions from "@/components/teacher/FolderInstructions";
+import StudentFoldersList from "@/components/teacher/StudentFoldersList";
 import { useTeacher } from "@/hooks/use-teacher";
 import { useTeacherAuth } from "@/hooks/useTeacherAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -112,7 +113,7 @@ export default function TeacherDashboard() {
             {teacher && (
               <>
                 <GoogleDriveConnect teacher={teacher} teacherId={currentTeacherId} />
-                <FolderInstructions teacher={teacher} studentCount={83} />
+                <StudentFoldersList teacher={teacher} teacherId={currentTeacherId} />
               </>
             )}
           </div>
