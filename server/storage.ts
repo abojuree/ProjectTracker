@@ -56,6 +56,7 @@ export interface IStorage {
     subjects: string[];
     activeParents: number;
   }>;
+  getStudentFileCounts(teacherId: number): Promise<{ studentId: number; fileCount: number }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -308,6 +309,22 @@ export class DatabaseStorage implements IStorage {
       .update(teachers)
       .set({ passwordHash })
       .where(eq(teachers.id, teacherId));
+  }
+
+  async getStudentFileCounts(teacherId: number): Promise<{ studentId: number; fileCount: number }[]> {
+    const result = await db.select({
+      studentId: students.id,
+      fileCount: sql<number>`cast(count(${files.id}) as int)`
+    })
+    .from(students)
+    .leftJoin(files, and(
+      eq(files.studentCivilId, students.civilId),
+      eq(files.isActive, true)
+    ))
+    .where(and(eq(students.teacherId, teacherId), eq(students.isActive, true)))
+    .groupBy(students.id);
+    
+    return result;
   }
 }
 

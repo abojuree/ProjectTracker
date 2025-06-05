@@ -271,6 +271,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/teacher/:teacherId/student-file-counts", async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      const fileCounts = await storage.getStudentFileCounts(teacherId);
+      res.json(fileCounts);
+    } catch (error) {
+      console.error("Error fetching student file counts:", error);
+      res.status(500).json({ message: "Failed to fetch student file counts" });
+    }
+  });
+
   // Google OAuth routes for teachers
   app.get("/api/teacher/:teacherId/google-auth", async (req: any, res) => {
     try {

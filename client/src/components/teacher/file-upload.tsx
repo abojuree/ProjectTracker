@@ -32,6 +32,11 @@ export default function FileUpload({ teacherId }: FileUploadProps) {
     queryKey: [`/api/teacher/${teacherId}/students`],
   });
 
+  // Fetch file counts for each student
+  const { data: fileCounts = [] } = useQuery({
+    queryKey: [`/api/teacher/${teacherId}/student-file-counts`],
+  });
+
   // Get unique values for filtering
   const grades = Array.from(new Set((students as Student[]).map(s => s.grade))).filter(Boolean);
   const classes = Array.from(new Set((students as Student[]).map(s => s.classNumber))).filter(Boolean);
