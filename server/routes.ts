@@ -250,6 +250,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const teacherId = parseInt(req.params.teacherId);
       const { driveFolderLink } = req.body;
 
+      // If empty string is sent, clear the drive folder ID
+      if (driveFolderLink === "") {
+        const updatedTeacher = await storage.updateTeacher(teacherId, {
+          driveFolderId: null
+        });
+        return res.json({ 
+          message: "Drive folder link cleared successfully", 
+          teacher: updatedTeacher 
+        });
+      }
+
       if (!driveFolderLink || typeof driveFolderLink !== 'string') {
         return res.status(400).json({ message: "Drive folder link is required" });
       }
@@ -930,6 +941,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error verifying student:", error);
       res.status(500).json({ message: "Failed to verify student" });
+    }
+  });
+
+  // Delete single student
+  app.delete("/api/teacher/:teacherId/students/:studentId", async (req, res) => {
+    try {
+      const studentId = parseInt(req.params.studentId);
+      await storage.deleteStudent(studentId);
+      res.json({ message: "Student deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      res.status(500).json({ message: "Failed to delete student" });
+    }
+  });
+
+  // Delete multiple students
+  app.delete("/api/teacher/:teacherId/students", async (req, res) => {
+    try {
+      const { studentIds } = req.body;
+      
+      if (!Array.isArray(studentIds) || studentIds.length === 0) {
+        return res.status(400).json({ message: "Student IDs array is required" });
+      }
+
+      let deletedCount = 0;
+      let failedCount = 0;
+
+      for (const studentId of studentIds) {
+        try {
+          await storage.deleteStudent(parseInt(studentId));
+          deletedCount++;
+        } catch (error) {
+          failedCount++;
+          console.error(`Error deleting student ${studentId}:`, error);
+        }
+      }
+
+      res.json({ 
+        message: `Deleted ${deletedCount} students successfully`,
+        deletedCount,
+        failedCount,
+        total: studentIds.length
+      });
+    } catch (error) {
+      console.error("Error deleting students:", error);
+      res.status(500).json({ message: "Failed to delete students" });
+    }
+  });
+
+  // Delete all students for a teacher
+  app.delete("/api/teacher/:teacherId/students/all", async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      
+      const students = await storage.getStudentsByTeacher(teacherId);
+      
+      let deletedCount = 0;
+      let failedCount = 0;
+
+      for (const student of students) {
+        try {
+          await storage.deleteStudent(student.id);
+          deletedCount++;
+        } catch (error) {
+          failedCount++;
+          console.error(`Error deleting student ${student.id}:`, error);
+        }
+      }
+
+      res.json({ 
+        message: `Deleted ${deletedCount} students successfully`,
+        deletedCount,
+        failedCount,
+        total: students.length
+      });
+    } catch (error) {
+      console.error("Error deleting all students:", error);
+      res.status(500).json({ message: "Failed to delete all students" });
     }
   });
 

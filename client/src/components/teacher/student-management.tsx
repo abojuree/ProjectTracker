@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { Upload, UserPlus, Users } from "lucide-react";
 import { teacherApi } from "@/lib/api";
+import StudentDeleteActions from "@/components/teacher/StudentDeleteActions";
 
 interface StudentManagementProps {
   teacherId: number;

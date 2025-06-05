@@ -161,10 +161,24 @@ export default function GoogleDriveConnect({ teacher, teacherId }: GoogleDriveCo
         {teacher.driveFolderId && (
           <div className="mt-4 space-y-3">
             <div className="p-3 bg-muted rounded-lg">
-              <p className="text-sm font-medium">مجلد Google Drive المربوط:</p>
-              <p className="text-sm text-muted-foreground">
-                {teacher.driveFolderId}
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">مجلد Google Drive المربوط:</p>
+                  <p className="text-sm text-muted-foreground">
+                    {teacher.driveFolderId}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Reset the folder ID to show the input form again
+                    saveDriveLinkMutation.mutate("");
+                  }}
+                >
+                  تغيير المجلد
+                </Button>
+              </div>
             </div>
             
             <CreateStudentFoldersButton teacherId={teacherId} teacher={teacher} />
