@@ -176,13 +176,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Ensure teacher folder structure exists
         await fileStorage.createTeacherFolders(teacherId, teacher.name);
         
-        // Create folders for each new student
+        // Create local folders for each new student
         for (const student of createdStudents) {
           try {
             await fileStorage.createStudentFolder(teacherId, student.civilId, student.studentName);
           } catch (error) {
-            console.warn(`Failed to create folder for student ${student.studentName}:`, error);
+            console.warn(`Failed to create local folder for student ${student.studentName}:`, error);
           }
+        }
+        
+        // Create Google Drive folders if teacher has Drive folder configured
+        if (teacher.driveFolderId) {
+          console.log(`Creating Google Drive folders for ${createdStudents.length} students...`);
+          try {
+            // Import Google Drive functions
+            const { createStudentFolders } = await import('./googleDrive');
+            
+            // Create folders for each student in Google Drive
+            for (const student of createdStudents) {
+              try {
+                await createStudentFolders([student], teacher);
+                console.log(`Created Google Drive folder for student: ${student.studentName}`);
+                
+                // Update student record to mark folder as created
+                await storage.updateStudent(student.id, { folderCreated: true });
+              } catch (driveError) {
+                console.warn(`Failed to create Google Drive folder for student ${student.studentName}:`, driveError);
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to create Google Drive folders:', error);
+          }
+        } else {
+          console.log('No Google Drive folder configured for teacher, skipping Drive folder creation');
         }
       }
       
