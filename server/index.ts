@@ -3,6 +3,16 @@ import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Initialize Google Drive Service at startup
+async function initializeServices() {
+  try {
+    const { googleDriveService } = await import('./googleDriveService');
+    console.log('Google Drive Service imported and initialized');
+  } catch (error) {
+    console.error('Failed to import Google Drive Service:', error);
+  }
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -49,6 +59,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize services first
+  await initializeServices();
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

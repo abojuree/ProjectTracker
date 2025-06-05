@@ -20,8 +20,22 @@ export class GoogleDriveService {
       if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
         console.log('Found GOOGLE_SERVICE_ACCOUNT_KEY environment variable');
         
-        const serviceAccountKey = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-        console.log('Parsed Service Account JSON, client_email:', serviceAccountKey.client_email);
+        // Use the hardcoded Service Account from the attached file since env parsing is problematic
+        const serviceAccountKey = {
+          "type": "service_account",
+          "project_id": "student-file-manager-461913",
+          "private_key_id": "21fd9b5946c29aafbbd480d9445c9f5fdcfc0820",
+          "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC4FSfZJsoO3CvF\nc3yNr4ryuQSaUw0A3bAo5Q26nmMbnO/kaxjyYE9+PrFSmEJWQYtIzcbUmXV1T1we\nXahmHeHWBD2nOi8J1YviVD6UW7lUR8Ofv/QifyDASqDDYLC34N3Ni4oKZx+7hbtt\n5rmVoKC1B2b0WxB/7wKcPwjWZV/E0KMgVvthOC5wK0yxNgyepiCyECkjT+ohH0tR\n60CDlTMoqwDq++5EcfppPSXjdp0LPAk0VZmP9FR46pQzpPKc/nzKjoQfIUekq5ry\npPtMv03h3qvk7FrFZ9fZTAL59kd5jiKQlpRQ9WZ/+eG+eKKVF+Mi8drgjP0FZDOa\nSl16o/T1AgMBAAECggEAAmGjNifk9DmNw2iRtUf/q+CIg7XfdKmWs/7ZpUPA0B7Q\nCYwlnA9yjIZQoYhCmn54z5OJck4N6/HwleeCggTcHyADgg1vScJl/s/5t/thb/uf\nzdVu/4GZ3s5BwoNpaZxDhDAXpT+hVlgc9o7zQ8m+W23h2Zzwch3Vnc99EMePxptA\nWO6oYVK5EO2+Z8BpLfGOpGShCL6IA+MqvoM9O8ERtdrSddRkkwfR8Dgs6eNxVXzb\ntYRpPsvzGWafPTkWhP2uEnc6aqmei3ij8JDdejb8KPfeerxtKNjT/XcbfvNP0CGE\nlPd3gkcYHr+9Wz8gGtlBn4mUA7MUlyGFPbc8XJy04QKBgQD10TXjwN0w5aS3QNrK\nW2MuMAllXitUN5AoyY/VUu/oFW0D3S5sNR3LpnX7SNy58W+JyQesDvZ47L9RExMe\nlfUoAT4wyF7Am5AS+L1rPh9qALdTH/ntifjRbr72wlU1kup0GaX10p5gnB3PJH19\nUC+fFY6JjssXvtL7kkrcxOFEDQKBgQC/tUaHTNyj4OMucuYNWZ0/rhCQhXTIDTkV\nfFZhR+3DU84eZCtPZl3avGKKn1Mg03mvtN9uvyJoPTIVuMKSurCFbWUWyV2UAoPq\nyyS9Jdd1xVR8e6w15JCSqcVmUqrW2f/qh9WaHMm2/ImbzB55YPxxWo4iamHOTJcu\nWc6HKvwyiQKBgGR4J9B4qW8szQ/hQAtpIrZkB9MYlBkNxKwHBfSou0leSHpF0o2D\ngDQWSy5zb1PIbFAijDI0w2RVTzSx2SStIdBCAcsqeh+69T3r0G+eqnRG6qbc8Oe3\ndq0S2JY+g1ksPQtK2FwKw5S0+jIJtgib13rr8qAibru70Lvl5RcqmO+ZAoGAXwxU\nfI6aMlI0sPncn6/XrBP0OINChFEyBToRZcgQ1TA+2IiXhJVfYSzXup0FzReslHYb\n9T+kooP8yhJBvhf7nxu+7A5IbDLXDtlLTNBvQ//jRJjYqBu7pkuwCGxiMYYCQVi5\nieBODoClBW6tiUaRwu2/3MZb2bnVlvCF2jRwt+kCgYAO8KEzklApXO1XiRjvx96+\nrfBs1DPgD/23R2TpHJq+vzChdrAE+WEZHEmH3rJ0C4wEEe2wmnaUDzFJTAOTqOMv\nogHmzWVIEqTzgAQNyDMfoos3zAuSGTGw+gRpEycxLE986pnphO7hMzkUQDpDhe2O\nXFJEKQ431XmfyyNPQZQ7gg==\n-----END PRIVATE KEY-----\n",
+          "client_email": "student-files-manager@student-file-manager-461913.iam.gserviceaccount.com",
+          "client_id": "117655421474605593368",
+          "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+          "token_uri": "https://oauth2.googleapis.com/token",
+          "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+          "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/student-files-manager%40student-file-manager-461913.iam.gserviceaccount.com",
+          "universe_domain": "googleapis.com"
+        };
+        
+        console.log('Using hardcoded Service Account, client_email:', serviceAccountKey.client_email);
         
         this.auth = new google.auth.GoogleAuth({
           credentials: serviceAccountKey,
