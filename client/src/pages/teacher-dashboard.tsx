@@ -3,13 +3,17 @@ import { useState } from "react";
 import StatsOverview from "@/components/teacher/stats-overview";
 import StudentManagement from "@/components/teacher/student-management";
 import FileManagement from "@/components/teacher/file-management";
+import ParentLinkGenerator from "@/components/teacher/parent-link-generator";
 import Sidebar from "@/components/teacher/sidebar";
 import { useTeacher } from "@/hooks/use-teacher";
+import { useTeacherAuth } from "@/hooks/useTeacherAuth";
 
 export default function TeacherDashboard() {
   const { teacherId } = useParams();
-  const currentTeacherId = parseInt(teacherId || "1"); // Default to 1 for demo
+  const { currentSession } = useTeacherAuth();
+  const currentTeacherId = currentSession?.teacherId || parseInt(teacherId || "1");
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'students' | 'files' | 'parent-links'>('overview');
   
   const { data: teacher, isLoading: teacherLoading } = useTeacher(currentTeacherId);
 

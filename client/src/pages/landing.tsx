@@ -92,21 +92,13 @@ export default function Landing() {
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+            <div className="flex justify-center mb-16">
               <Button 
                 size="lg" 
                 onClick={() => setIsRegistering(true)}
                 className="bg-primary hover:bg-primary/90 text-lg px-8 py-4"
               >
                 ابدأ التسجيل الآن
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="text-lg px-8 py-4"
-                onClick={() => window.location.href = '/parent-access'}
-              >
-                دخول أولياء الأمور
               </Button>
             </div>
           </div>
