@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Camera, Upload, FileImage, X } from "lucide-react";
 import { FILE_CATEGORIES } from "@shared/schema";
+import type { Student } from "@shared/schema";
 
 interface FileManagementProps {
   teacherId: number;
@@ -17,6 +19,8 @@ interface FileManagementProps {
 
 export default function FileManagement({ teacherId, selectedStudent }: FileManagementProps) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
   const [uploadData, setUploadData] = useState({
     studentCivilId: "",
     subject: "",
@@ -24,9 +28,138 @@ export default function FileManagement({ teacherId, selectedStudent }: FileManag
     description: ""
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [selectedStudentForImage, setSelectedStudentForImage] = useState<Student | null>(null);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch students list
+  const { data: students = [] } = useQuery({
+    queryKey: [`/api/teacher/${teacherId}/students`],
+  });
+
+  // Start camera stream
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } // Use back camera on mobile
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setIsStreaming(true);
+      }
+    } catch (error) {
+      toast({
+        title: "خطأ في تشغيل الكاميرا",
+        description: "تأكد من السماح للموقع بالوصول للكاميرا",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Stop camera stream
+  const stopCamera = () => {
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+      setIsStreaming(false);
+    }
+  };
+
+  // Capture photo from camera
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        setCapturedImage(imageData);
+        stopCamera();
+        setIsImagePreviewOpen(true);
+      }
+    }
+  };
+
+  // Convert data URL to File
+  const dataURLtoFile = (dataurl: string, filename: string): File => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || '';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
+  // Handle image upload (captured or selected)
+  const handleImageUpload = async (imageData: string, student: Student) => {
+    try {
+      const fileName = `image_${student.civilId}_${Date.now()}.jpg`;
+      const file = dataURLtoFile(imageData, fileName);
+      
+      const formData = new FormData();
+      formData.append('files', file);
+      formData.append('category', 'photos');
+      
+      const response = await fetch(`/api/teacher/${teacherId}/students/${student.id}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'فشل في رفع الصورة');
+      }
+      
+      toast({
+        title: "تم رفع الصورة بنجاح",
+        description: `تم حفظ الصورة في ملف الطالب ${student.studentName}`
+      });
+      
+      // Reset states
+      setCapturedImage(null);
+      setSelectedStudentForImage(null);
+      setIsImagePreviewOpen(false);
+      setIsCameraModalOpen(false);
+      
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}/stats`] });
+    } catch (error: any) {
+      toast({
+        title: "خطأ في رفع الصورة",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handle file upload from gallery
+  const handleGalleryUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageData = e.target?.result as string;
+        setCapturedImage(imageData);
+        setIsImagePreviewOpen(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -65,7 +198,7 @@ export default function FileManagement({ teacherId, selectedStudent }: FileManag
     },
   });
 
-  const handleFileUpload = (e: React.FormEvent) => {
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!selectedFile || !uploadData.studentCivilId || !uploadData.subject || !uploadData.fileCategory) {
@@ -145,7 +278,7 @@ export default function FileManagement({ teacherId, selectedStudent }: FileManag
                 <DialogHeader>
                   <DialogTitle>رفع ملف جديد</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleFileUpload} className="space-y-4">
+                <form onSubmit={handleFormSubmit} className="space-y-4">
                   <div>
                     <Label htmlFor="file">اختر الملف</Label>
                     <Input

@@ -4,6 +4,7 @@ import StatsOverview from "@/components/teacher/stats-overview";
 import StudentManagement from "@/components/teacher/student-management";
 import FileManagement from "@/components/teacher/file-management";
 import FileUpload from "@/components/teacher/file-upload";
+import CameraUpload from "@/components/teacher/camera-upload";
 import ParentLinkGenerator from "@/components/teacher/parent-link-generator";
 import GoogleDriveConnect from "@/components/teacher/GoogleDriveConnect";
 import FolderInstructions from "@/components/teacher/FolderInstructions";
@@ -141,6 +142,7 @@ export default function TeacherDashboard() {
 
         {activeTab === 'files' && (
           <div className="space-y-6">
+            <CameraUpload teacherId={currentTeacherId} />
             <FileManagement 
               teacherId={currentTeacherId}
               selectedStudent={selectedStudent}
