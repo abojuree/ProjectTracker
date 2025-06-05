@@ -139,7 +139,7 @@ export default function TeacherOnboarding() {
                 onClick={() => {
                   // Create demo teacher account
                   localStorage.setItem('teacherId', '1');
-                  setLocation("/teacher-dashboard");
+                  setLocation("/teacher-dashboard/1");
                 }}
                 variant="outline"
                 className="w-full"

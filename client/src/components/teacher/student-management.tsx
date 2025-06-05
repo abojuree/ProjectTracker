@@ -1,22 +1,34 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/api";
-import type { Student } from "@shared/schema";
+import { queryClient } from "@/lib/queryClient";
+import { Upload, UserPlus, Users } from "lucide-react";
+import { teacherApi } from "@/lib/api";
 
 interface StudentManagementProps {
   teacherId: number;
-  onStudentSelect: (civilId: string) => void;
+  onStudentSelect?: (civilId: string) => void;
+}
+
+interface Student {
+  id: number;
+  civilId: string;
+  studentName: string;
+  grade: string;
+  classNumber: number;
+  subject: string;
+  teacherId: number;
+  isActive: boolean;
 }
 
 export default function StudentManagement({ teacherId, onStudentSelect }: StudentManagementProps) {
-  const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
-  const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [showUploadForm, setShowUploadForm] = useState(false);
   const [newStudent, setNewStudent] = useState({
     civilId: "",
     studentName: "",
@@ -24,315 +36,278 @@ export default function StudentManagement({ teacherId, onStudentSelect }: Studen
     classNumber: "",
     subject: ""
   });
-
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  const { data: students = [], isLoading } = useQuery<Student[]>({
+  const { data: students, isLoading } = useQuery({
     queryKey: [`/api/teacher/${teacherId}/students`],
+    enabled: !!teacherId
   });
 
-  const excelUploadMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await fetch(`/api/teacher/${teacherId}/students/upload-excel`, {
+  const addStudentMutation = useMutation({
+    mutationFn: async (studentData: any) => {
+      const response = await fetch(`/api/teacher/${teacherId}/students`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(studentData),
+        credentials: 'include'
       });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to upload Excel file');
-      }
-      
+      if (!response.ok) throw new Error('Failed to add student');
       return response.json();
     },
-    onSuccess: (data) => {
-      const description = data.skipped > 0 
-        ? `تم إضافة ${data.added} طالب، تم تجاهل ${data.skipped} صف`
-        : `تم إضافة ${data.added} طالب`;
-      
-      toast({
-        title: "تم رفع الملف بنجاح",
-        description: description,
-      });
-      queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}/students`] });
-      setIsExcelModalOpen(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "خطأ في رفع الملف",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const createStudentMutation = useMutation({
-    mutationFn: async (studentData: typeof newStudent) => {
-      return await apiRequest('POST', `/api/teacher/${teacherId}/students`, {
-        ...studentData,
-        classNumber: parseInt(studentData.classNumber)
-      });
-    },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}/students`] });
+      setNewStudent({ civilId: "", studentName: "", grade: "", classNumber: "", subject: "" });
+      setShowAddForm(false);
       toast({
         title: "تم إضافة الطالب بنجاح",
-      });
-      queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}/students`] });
-      setIsStudentModalOpen(false);
-      setNewStudent({
-        civilId: "",
-        studentName: "",
-        grade: "",
-        classNumber: "",
-        subject: ""
+        description: "تم إنشاء ملف جديد للطالب"
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "خطأ في إضافة الطالب",
-        description: error.message,
-        variant: "destructive",
+        description: "يرجى المحاولة مرة أخرى",
+        variant: "destructive"
       });
-    },
+    }
   });
 
-  const handleExcelUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadExcelMutation = useMutation({
+    mutationFn: (file: File) => teacherApi.uploadExcel(teacherId, file, setUploadProgress),
+    onSuccess: (result: any) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/teacher/${teacherId}/students`] });
+      setShowUploadForm(false);
+      setUploadProgress(0);
+      toast({
+        title: "تم رفع الملف بنجاح",
+        description: `تم إضافة ${result.added} طالب. ${result.skipped > 0 ? `تم تجاهل ${result.skipped} صف.` : ''}`
+      });
+    },
+    onError: (error: any) => {
+      setUploadProgress(0);
+      toast({
+        title: "خطأ في رفع الملف",
+        description: error.message || "يرجى التأكد من صيغة الملف",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleAddStudent = () => {
+    if (!newStudent.civilId || !newStudent.studentName || !newStudent.grade || !newStudent.classNumber || !newStudent.subject) {
+      toast({
+        title: "بيانات ناقصة",
+        description: "يرجى ملء جميع الحقول المطلوبة",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    addStudentMutation.mutate({
+      ...newStudent,
+      classNumber: parseInt(newStudent.classNumber),
+      teacherId,
+      isActive: true
+    });
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      excelUploadMutation.mutate(file);
+      uploadExcelMutation.mutate(file);
     }
   };
 
-  const handleStudentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    createStudentMutation.mutate(newStudent);
-  };
+  if (isLoading) {
+    return <div className="text-center py-8">جاري تحميل بيانات الطلاب...</div>;
+  }
 
   return (
-    <Card className="card-shadow">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>إدارة بيانات الطلاب</span>
-          <i className="fas fa-database text-primary text-xl"></i>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* Upload Methods */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Dialog open={isExcelModalOpen} onOpenChange={setIsExcelModalOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="flex flex-col items-center p-6 h-auto border-2 border-dashed border-primary hover:bg-blue-50 transition-colors"
-              >
-                <i className="fas fa-file-excel text-3xl text-green-600 mb-2"></i>
-                <span className="text-sm font-medium text-foreground">رفع ملف Excel</span>
-                <span className="text-xs text-muted-foreground mt-1">الطريقة الأولى</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>رفع ملف Excel</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                  <i className="fas fa-file-excel text-4xl text-green-600 mb-4"></i>
-                  <p className="text-sm text-muted-foreground mb-2">اختر ملف Excel</p>
-                  <Input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleExcelUpload}
-                    disabled={excelUploadMutation.isPending}
-                  />
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            إدارة الطلاب
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-4">
+            <Button onClick={() => setShowAddForm(!showAddForm)} variant="outline">
+              <UserPlus className="ml-2 h-4 w-4" />
+              إضافة طالب جديد
+            </Button>
+            <Button onClick={() => setShowUploadForm(!showUploadForm)} variant="outline">
+              <Upload className="ml-2 h-4 w-4" />
+              رفع ملف Excel
+            </Button>
+          </div>
+
+          {showAddForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>إضافة طالب جديد</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="civilId">رقم الهوية المدنية</Label>
+                    <Input
+                      id="civilId"
+                      value={newStudent.civilId}
+                      onChange={(e) => setNewStudent({...newStudent, civilId: e.target.value})}
+                      placeholder="10 أرقام"
+                      maxLength={10}
+                      className="text-right"
+                      dir="rtl"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="studentName">اسم الطالب</Label>
+                    <Input
+                      id="studentName"
+                      value={newStudent.studentName}
+                      onChange={(e) => setNewStudent({...newStudent, studentName: e.target.value})}
+                      placeholder="الاسم الكامل"
+                      className="text-right"
+                      dir="rtl"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="grade">الصف</Label>
+                    <Select value={newStudent.grade} onValueChange={(value) => setNewStudent({...newStudent, grade: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر الصف" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="الأول الابتدائي">الأول الابتدائي</SelectItem>
+                        <SelectItem value="الثاني الابتدائي">الثاني الابتدائي</SelectItem>
+                        <SelectItem value="الثالث الابتدائي">الثالث الابتدائي</SelectItem>
+                        <SelectItem value="الرابع الابتدائي">الرابع الابتدائي</SelectItem>
+                        <SelectItem value="الخامس الابتدائي">الخامس الابتدائي</SelectItem>
+                        <SelectItem value="السادس الابتدائي">السادس الابتدائي</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="classNumber">رقم الفصل</Label>
+                    <Input
+                      id="classNumber"
+                      type="number"
+                      value={newStudent.classNumber}
+                      onChange={(e) => setNewStudent({...newStudent, classNumber: e.target.value})}
+                      placeholder="1, 2, 3..."
+                      min="1"
+                      max="20"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="subject">المادة</Label>
+                    <Select value={newStudent.subject} onValueChange={(value) => setNewStudent({...newStudent, subject: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر المادة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="الرياضيات">الرياضيات</SelectItem>
+                        <SelectItem value="اللغة العربية">اللغة العربية</SelectItem>
+                        <SelectItem value="العلوم">العلوم</SelectItem>
+                        <SelectItem value="الاجتماعيات">الاجتماعيات</SelectItem>
+                        <SelectItem value="التربية الإسلامية">التربية الإسلامية</SelectItem>
+                        <SelectItem value="اللغة الإنجليزية">اللغة الإنجليزية</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                
-                <div className="flex justify-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      window.open('/api/excel-template', '_blank');
-                    }}
-                    className="text-xs"
-                  >
-                    <i className="fas fa-download ml-1"></i>
-                    تحميل نموذج Excel
+                <div className="flex gap-2">
+                  <Button onClick={handleAddStudent} disabled={addStudentMutation.isPending}>
+                    {addStudentMutation.isPending ? "جاري الإضافة..." : "إضافة الطالب"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAddForm(false)}>
+                    إلغاء
                   </Button>
                 </div>
-                
-                <div className="text-xs text-muted-foreground">
-                  <p className="font-medium mb-1">الأعمدة المطلوبة:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>رقم متسلسل</li>
-                    <li>اسم الطالب</li>
-                    <li>رقم الهوية (10 أرقام)</li>
-                    <li>الصف</li>
-                    <li>رقم الفصل</li>
-                    <li>المادة</li>
-                  </ul>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </CardContent>
+            </Card>
+          )}
 
-          <Button
-            variant="outline"
-            className="flex flex-col items-center p-6 h-auto border-2 border-dashed border-green-500 hover:bg-green-50 transition-colors"
-            onClick={() => {
-              toast({
-                title: "قريباً",
-                description: "خاصية ربط Google Sheets ستكون متاحة قريباً",
-              });
-            }}
-          >
-            <i className="fas fa-table text-3xl text-green-600 mb-2"></i>
-            <span className="text-sm font-medium text-foreground">ربط Google Sheets</span>
-            <span className="text-xs text-muted-foreground mt-1">الطريقة الثانية</span>
-          </Button>
-
-          <Dialog open={isStudentModalOpen} onOpenChange={setIsStudentModalOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="flex flex-col items-center p-6 h-auto border-2 border-dashed border-purple-500 hover:bg-purple-50 transition-colors"
-              >
-                <i className="fas fa-user-plus text-3xl text-purple-600 mb-2"></i>
-                <span className="text-sm font-medium text-foreground">إضافة طالب منفرد</span>
-                <span className="text-xs text-muted-foreground mt-1">الطريقة الثالثة</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>إضافة طالب جديد</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleStudentSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="studentName">اسم الطالب</Label>
-                  <Input
-                    id="studentName"
-                    value={newStudent.studentName}
-                    onChange={(e) => setNewStudent(prev => ({ ...prev, studentName: e.target.value }))}
-                    required
+          {showUploadForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>رفع ملف Excel</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-sm text-muted-foreground mb-4">
+                    اختر ملف Excel يحتوي على: اسم الطالب، رقم الهوية، الصف، رقم الفصل، المادة
+                  </p>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="excel-upload"
                   />
+                  <Label htmlFor="excel-upload" className="cursor-pointer">
+                    <Button asChild disabled={uploadExcelMutation.isPending}>
+                      <span>اختيار ملف Excel</span>
+                    </Button>
+                  </Label>
+                  {uploadProgress > 0 && (
+                    <div className="mt-4">
+                      <div className="bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">{uploadProgress}%</p>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <Label htmlFor="civilId">رقم الهوية (10 أرقام)</Label>
-                  <Input
-                    id="civilId"
-                    value={newStudent.civilId}
-                    onChange={(e) => setNewStudent(prev => ({ ...prev, civilId: e.target.value }))}
-                    maxLength={10}
-                    pattern="[0-9]{10}"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="grade">الصف</Label>
-                  <Input
-                    id="grade"
-                    value={newStudent.grade}
-                    onChange={(e) => setNewStudent(prev => ({ ...prev, grade: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="classNumber">رقم الفصل</Label>
-                  <Input
-                    id="classNumber"
-                    type="number"
-                    value={newStudent.classNumber}
-                    onChange={(e) => setNewStudent(prev => ({ ...prev, classNumber: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="subject">المادة</Label>
-                  <Input
-                    id="subject"
-                    value={newStudent.subject}
-                    onChange={(e) => setNewStudent(prev => ({ ...prev, subject: e.target.value }))}
-                    required
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={createStudentMutation.isPending}
-                >
-                  {createStudentMutation.isPending ? "جاري الإضافة..." : "إضافة الطالب"}
+                <Button variant="outline" onClick={() => setShowUploadForm(false)}>
+                  إلغاء
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </CardContent>
+            </Card>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Students List */}
-        <div className="border-t pt-4">
-          <h3 className="text-lg font-semibold text-foreground mb-4">قائمة الطلاب الحالية</h3>
-          {isLoading ? (
+      {/* Students List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>قائمة الطلاب ({students?.length || 0})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {students && students.length > 0 ? (
             <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="animate-pulse flex items-center p-3 bg-muted rounded-lg">
-                  <div className="w-10 h-10 bg-muted-foreground/20 rounded-full ml-3"></div>
-                  <div className="flex-1">
-                    <div className="h-4 bg-muted-foreground/20 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-muted-foreground/20 rounded w-1/2"></div>
+              {students.map((student: Student) => (
+                <div 
+                  key={student.id}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                  onClick={() => onStudentSelect?.(student.civilId)}
+                >
+                  <div>
+                    <p className="font-medium">{student.studentName}</p>
+                    <p className="text-sm text-gray-500">
+                      {student.grade} - فصل {student.classNumber} - {student.subject}
+                    </p>
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    {student.civilId}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-              {students.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <i className="fas fa-users text-3xl mb-2"></i>
-                  <p>لا يوجد طلاب مسجلون بعد</p>
-                  <p className="text-sm">استخدم إحدى الطرق أعلاه لإضافة الطلاب</p>
-                </div>
-              ) : (
-                students.map((student) => (
-                  <div 
-                    key={student.id} 
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-                    onClick={() => onStudentSelect(student.civilId)}
-                  >
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center ml-3">
-                        <span className="text-sm font-bold">
-                          {student.studentName.charAt(0)}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{student.studentName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {student.grade} - فصل {student.classNumber} - {student.subject}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-reverse space-x-2">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        student.folderCreated 
-                          ? "bg-green-100 text-green-800" 
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}>
-                        <i className={`fas ${student.folderCreated ? "fa-check" : "fa-clock"} ml-1`}></i>
-                        {student.folderCreated ? "مجلد منشأ" : "قيد الإنشاء"}
-                      </span>
-                      <Button variant="ghost" size="sm">
-                        <i className="fas fa-ellipsis-v"></i>
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
+            <div className="text-center py-8 text-gray-500">
+              لا توجد بيانات طلاب. قم بإضافة طلاب جدد أو رفع ملف Excel.
             </div>
           )}
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
