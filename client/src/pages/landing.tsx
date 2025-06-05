@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { FolderOpen, Users, Shield, BookOpen, ArrowLeft, CheckCircle, AlertCircl
 import { useToast } from "@/hooks/use-toast";
 
 export default function Landing() {
+  const [, setLocation] = useLocation();
   const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({
     teacherName: '',
@@ -58,7 +60,7 @@ export default function Landing() {
               </div>
               <div className="flex items-center">
                 <Button 
-                  onClick={() => setIsRegistering(true)}
+                  onClick={() => setLocation('/simple-registration')}
                   className="bg-primary hover:bg-primary/90"
                 >
                   تسجيل حساب جديد
@@ -95,7 +97,7 @@ export default function Landing() {
             <div className="flex justify-center mb-16">
               <Button 
                 size="lg" 
-                onClick={() => setIsRegistering(true)}
+                onClick={() => setLocation('/simple-registration')}
                 className="bg-primary hover:bg-primary/90 text-lg px-8 py-4"
               >
                 ابدأ التسجيل الآن
