@@ -20,6 +20,7 @@ export interface IStorage {
   getTeacher(id: number): Promise<Teacher | undefined>;
   getTeacherByGoogleId(googleId: string): Promise<Teacher | undefined>;
   getTeacherByLinkCode(linkCode: string): Promise<Teacher | undefined>;
+  getTeacherByEmail(email: string): Promise<Teacher | undefined>;
   createTeacher(teacher: InsertTeacher): Promise<Teacher>;
   updateTeacher(id: number, updates: Partial<InsertTeacher>): Promise<Teacher>;
 
@@ -68,6 +69,11 @@ export class DatabaseStorage implements IStorage {
 
   async getTeacherByLinkCode(linkCode: string): Promise<Teacher | undefined> {
     const [teacher] = await db.select().from(teachers).where(eq(teachers.linkCode, linkCode));
+    return teacher || undefined;
+  }
+
+  async getTeacherByEmail(email: string): Promise<Teacher | undefined> {
+    const [teacher] = await db.select().from(teachers).where(eq(teachers.email, email));
     return teacher || undefined;
   }
 

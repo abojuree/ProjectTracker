@@ -134,6 +134,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Teacher login
+  app.post('/api/teacher/login', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "البريد الإلكتروني مطلوب" });
+      }
+      
+      const teacher = await storage.getTeacherByEmail(email);
+      if (!teacher) {
+        return res.status(404).json({ message: "لا يوجد حساب مسجل بهذا البريد الإلكتروني" });
+      }
+      
+      res.json({ 
+        message: "تم تسجيل الدخول بنجاح",
+        teacher 
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: "خطأ في تسجيل الدخول" });
+    }
+  });
+
   app.get('/api/google-callback', async (req, res) => {
     try {
       const { google } = await import('googleapis');
