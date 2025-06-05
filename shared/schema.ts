@@ -25,6 +25,7 @@ export const teachers = pgTable("teachers", {
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
   linkCode: varchar("link_code", { length: 50 }).unique(),
+  passwordHash: varchar("password_hash", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow(),
   lastLogin: timestamp("last_login"),
   isActive: boolean("is_active").default(true)
@@ -112,7 +113,7 @@ export const filesRelations = relations(files, ({ one }) => ({
 // Insert schemas
 export const insertTeacherSchema = createInsertSchema(teachers).omit({
   id: true,
-  createdDate: true,
+  createdAt: true,
   lastLogin: true
 });
 

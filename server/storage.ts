@@ -14,6 +14,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, count, sql } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 export interface IStorage {
   // Teacher operations
@@ -23,6 +24,8 @@ export interface IStorage {
   getTeacherByEmail(email: string): Promise<Teacher | undefined>;
   createTeacher(teacher: InsertTeacher): Promise<Teacher>;
   updateTeacher(id: number, updates: Partial<InsertTeacher>): Promise<Teacher>;
+  validateTeacherPassword(email: string, password: string): Promise<Teacher | null>;
+  setTeacherPassword(teacherId: number, passwordHash: string): Promise<void>;
 
   // Student operations
   getStudent(id: number): Promise<Student | undefined>;
@@ -262,6 +265,24 @@ export class DatabaseStorage implements IStorage {
       subjects: subjectsResult.map(s => s.subject),
       activeParents: studentsCount.count // For now, assume all parents are active
     };
+  }
+
+  async validateTeacherPassword(email: string, password: string): Promise<Teacher | null> {
+    const [teacher] = await db.select().from(teachers).where(eq(teachers.email, email));
+    
+    if (!teacher || !teacher.passwordHash) {
+      return null;
+    }
+
+    const isValid = await bcrypt.compare(password, teacher.passwordHash);
+    return isValid ? teacher : null;
+  }
+
+  async setTeacherPassword(teacherId: number, passwordHash: string): Promise<void> {
+    await db
+      .update(teachers)
+      .set({ passwordHash })
+      .where(eq(teachers.id, teacherId));
   }
 }
 
